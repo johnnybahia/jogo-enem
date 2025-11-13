@@ -485,7 +485,7 @@
 
         // --- MELHORIA: Entidade Professora como NPC visível ---
         const teacher = {
-            x: 0, y: 0, width: 60, height: 60,
+            x: 0, y: 0, width: 60, height: 80,
             isVisible: false,
             tipText: "",
             tipAlpha: 0,
@@ -504,7 +504,7 @@
                     ctx.fillRect(tX, tY, this.width, this.height);
                     ctx.fillStyle = '#000';
                     ctx.font = 'bold 10px Inter';
-                    ctx.fillText('Prof.', tX + 10, tY + 30);
+                    ctx.fillText('Prof.', tX + 10, tY + 40);
                 }
 
                 // Desenha o balão de dica acima da professora
@@ -710,9 +710,9 @@
                 this.text = this.concept.text;
 
                 // MELHORIA: Largura máxima fixa e quebra de linha automática
-                ctx.font = 'bold 14px Inter';
-                const maxWidth = 90; // Largura máxima do balão (mais estreito)
-                const padding = 20;
+                ctx.font = 'bold 12px Inter'; // Fonte menor para caber melhor
+                const maxWidth = 70; // Largura máxima do balão (reduzido para facilitar pulo)
+                const padding = 16;
 
                 // Quebra o texto em palavras
                 const words = this.text.split(' ');
@@ -736,7 +736,7 @@
 
                 // MELHORIA: Tamanho padrão com altura dinâmica baseada no número de linhas
                 this.width = maxWidth + padding;
-                this.height = 20 + (this.lines.length * 16); // 16px por linha + padding
+                this.height = 18 + (this.lines.length * 14); // 14px por linha + padding menor
 
                 this.x = width;
 
@@ -758,12 +758,12 @@
                     ctx.fillStyle = '#FCA5A5'; ctx.strokeStyle = '#DC2626'; ctx.lineWidth = 2;
                     ctx.beginPath(); ctx.roundRect(this.x, finalY, this.width, this.height, 20); ctx.fill(); ctx.stroke();
                     ctx.fillStyle = '#DC2626';
-                    ctx.font = 'bold 14px Inter';
+                    ctx.font = 'bold 12px Inter';
                     ctx.textAlign = 'center';
 
                     // Desenha cada linha de texto
                     this.lines.forEach((line, index) => {
-                        const lineY = finalY + 18 + (index * 16);
+                        const lineY = finalY + 16 + (index * 14);
                         ctx.fillText(line, this.x + this.width / 2, lineY);
                     });
 
@@ -772,12 +772,12 @@
                     ctx.fillStyle = '#A7F3D0'; ctx.strokeStyle = '#059669'; ctx.lineWidth = 2;
                     ctx.beginPath(); ctx.roundRect(this.x, finalY, this.width, this.height, 20); ctx.fill(); ctx.stroke();
                     ctx.fillStyle = '#059669';
-                    ctx.font = 'bold 14px Inter';
+                    ctx.font = 'bold 12px Inter';
                     ctx.textAlign = 'center';
 
                     // Desenha cada linha de texto
                     this.lines.forEach((line, index) => {
-                        const lineY = finalY + 18 + (index * 16);
+                        const lineY = finalY + 16 + (index * 14);
                         ctx.fillText(line, this.x + this.width / 2, lineY);
                     });
 
