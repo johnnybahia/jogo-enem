@@ -802,8 +802,9 @@
         function spawnObstacle() {
             if (frames - lastObstacleFrame > OBSTACLE_SPAWN_RATE + Math.random() * 80) {
                 const SAFE_DISTANCE = 200; // Distância mínima segura entre obstáculo e balão ruim
+                const MIN_OBSTACLE_DISTANCE = 150; // Distância mínima entre obstáculos para garantir pulo
                 let tooClose = false;
-                
+
                 // Verifica se há balões ruins próximos
                 wordBlocks.forEach(w => {
                     if (w.isBad) {
@@ -813,13 +814,37 @@
                         }
                     }
                 });
-                
-                // Se estiver muito perto de um balão ruim, não spawna e tenta novamente mais tarde
+
+                // IMPORTANTE: Verifica se há obstáculos muito próximos (evita obstáculos impossíveis)
+                obstacles.forEach(o => {
+                    const distance = Math.abs(width - o.x);
+                    if (distance < MIN_OBSTACLE_DISTANCE) {
+                        tooClose = true;
+                    }
+                });
+
+                // Verifica obstáculos empilhados também
+                stackedObstacles.forEach(s => {
+                    const distance = Math.abs(width - s.x);
+                    if (distance < MIN_OBSTACLE_DISTANCE) {
+                        tooClose = true;
+                    }
+                });
+
+                // Verifica se há professora próxima
+                if (teacher.isVisible) {
+                    const teacherDistance = Math.abs(width - teacher.x);
+                    if (teacherDistance < 300) { // Não spawna perto da professora
+                        tooClose = true;
+                    }
+                }
+
+                // Se estiver muito perto, não spawna e tenta novamente mais tarde
                 if (tooClose) {
                     lastObstacleFrame = frames - 30; // Tenta de novo em breve (30 frames)
                     return;
                 }
-                
+
                 // 20% de chance de spawnar obstáculos empilhados
                 if (Math.random() < 0.2) {
                     stackedObstacles.push(new StackedObstacle());
