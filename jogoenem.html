@@ -237,6 +237,8 @@
         let lives = 0; // Sistema de vidas
         let gameTimer = 120; // 2 minutos em segundos
         let lastSecond = 0; // Controle do timer
+        let showed900Speech = false; // Controla se já mostrou o balão de 900 pontos
+        let pending900Speech = false; // Controla se há balão de 900 pontos pendente
 
         const WIN_SCORE = 1000;
         const GAME_TIME_LIMIT = 120; // 2 minutos
@@ -1066,7 +1068,7 @@
         function updateEntities() {
             player.update();
             teacher.update();
-            
+
             obstacles.forEach(o => o.update());
             stackedObstacles.forEach(s => s.update());
             wordBlocks.forEach(w => w.update());
@@ -1074,6 +1076,25 @@
             obstacles = obstacles.filter(o => !o.markedForDeletion);
             stackedObstacles = stackedObstacles.filter(s => !s.markedForDeletion);
             wordBlocks = wordBlocks.filter(w => !w.markedForDeletion);
+
+            // Verifica se atingiu 900 pontos e mostra balão especial
+            if (score >= 900 && !showed900Speech) {
+                // Se há um balão ativo (da professora), aguarda para mostrar depois
+                if (player.speechTimer > 0) {
+                    pending900Speech = true;
+                } else {
+                    player.showSpeech("Eu quero é medicina!!");
+                    showed900Speech = true;
+                    pending900Speech = false;
+                }
+            }
+
+            // Se há balão pendente de 900 pontos e o balão atual terminou, mostra agora
+            if (pending900Speech && player.speechTimer === 0) {
+                player.showSpeech("Eu quero é medicina!!");
+                showed900Speech = true;
+                pending900Speech = false;
+            }
         }
 
         function drawEntities() {
@@ -1248,6 +1269,8 @@
             stackedObstacles = [];
             wordBlocks = [];
             usedTips = []; // Reset dicas usadas
+            showed900Speech = false; // Reset balão de 900 pontos
+            pending900Speech = false; // Reset balão pendente
             lastObstacleFrame = -100; // Reinicia negativo para spawnar logo
             lastWordBlockFrame = -80; // Reinicia negativo para spawnar logo
             lastTeacherSpawn = 0; // Reseta spawn da professora
