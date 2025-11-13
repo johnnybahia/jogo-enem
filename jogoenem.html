@@ -351,6 +351,10 @@
                     teacher.spawn(tip);
                     teacher.x = width + 400; // Professora no meio
 
+                    // Mostra balão de fala aleatório do personagem quando a professora aparece na tela
+                    const randomSpeech = playerSpeechOptions[Math.floor(Math.random() * playerSpeechOptions.length)];
+                    player.showSpeech(randomSpeech);
+
                     // Spawna obstáculo depois da professora (200px de distância)
                     const obstacleRight = new GroundObstacle();
                     obstacleRight.x = width + 600;
@@ -1106,10 +1110,6 @@
                     updateLivesDisplay();
                     showFeedback('+1 VIDA!', 'green');
                     playSound('collect');
-
-                    // Mostra balão de fala aleatório do personagem
-                    const randomSpeech = playerSpeechOptions[Math.floor(Math.random() * playerSpeechOptions.length)];
-                    player.showSpeech(randomSpeech);
                 }
             }
 
