@@ -464,6 +464,9 @@
         const player = {
             x: 50, y: 0, width: 44, height: 56, dy: 0,
             jumpForce: 15.5, gravity: 0.6, grounded: false,
+            speechBubble: "", // Texto do balão de fala
+            speechTimer: 0, // Contador para mostrar o balão
+            speechAlpha: 0, // Opacidade do balão
             draw() {
                 ctx.fillStyle = 'rgba(0,0,0,0.15)';
                 if (!this.grounded) {
@@ -491,6 +494,50 @@
                 ctx.fillStyle = '#DC2626'; ctx.fillRect(pX + 4, pY - 4, 36, 10); ctx.fillRect(pX + 20, pY - 4, 24, 4); // Boné
                 ctx.fillStyle = 'black'; ctx.fillRect(pX + 28, pY + 10, 4, 6); ctx.fillRect(pX + 30, pY + 18, 6, 2); // Rosto
                 ctx.fillStyle = '#92400E'; ctx.fillRect(pX - 6, pY + 24, 12, 18); // Mochila
+
+                // Desenha balão de fala se ativo
+                if (this.speechTimer > 0 && this.speechBubble) {
+                    ctx.save();
+                    ctx.globalAlpha = this.speechAlpha;
+
+                    const bubbleX = pX - 20;
+                    const bubbleY = pY - 60;
+                    const bubbleWidth = 130;
+                    const bubbleHeight = 45;
+
+                    // Balão de fala
+                    ctx.fillStyle = '#FFF';
+                    ctx.strokeStyle = '#000';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.roundRect(bubbleX, bubbleY, bubbleWidth, bubbleHeight, 8);
+                    ctx.fill();
+                    ctx.stroke();
+
+                    // Pontinha do balão
+                    ctx.fillStyle = '#FFF';
+                    ctx.beginPath();
+                    ctx.moveTo(pX + 15, bubbleY + bubbleHeight);
+                    ctx.lineTo(pX + 22, bubbleY + bubbleHeight + 10);
+                    ctx.lineTo(pX + 25, bubbleY + bubbleHeight);
+                    ctx.fill();
+                    ctx.strokeStyle = '#000';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(pX + 15, bubbleY + bubbleHeight);
+                    ctx.lineTo(pX + 22, bubbleY + bubbleHeight + 10);
+                    ctx.lineTo(pX + 25, bubbleY + bubbleHeight);
+                    ctx.stroke();
+
+                    // Texto do balão
+                    ctx.fillStyle = '#000';
+                    ctx.font = 'bold 11px Inter';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(this.speechBubble, bubbleX + bubbleWidth / 2, bubbleY + 25);
+                    ctx.textAlign = 'left';
+
+                    ctx.restore();
+                }
             },
             update() {
                 if (input.jump && this.grounded) {
@@ -505,14 +552,48 @@
                     this.dy = 0;
                     this.grounded = true;
                 }
+
+                // Atualiza balão de fala
+                if (this.speechTimer > 0) {
+                    this.speechTimer--;
+
+                    // Fade in (primeiros 10 frames)
+                    if (this.speechTimer > 110) {
+                        this.speechAlpha = Math.min(1, this.speechAlpha + 0.1);
+                    }
+                    // Fade out (últimos 30 frames)
+                    else if (this.speechTimer < 30) {
+                        this.speechAlpha = Math.max(0, this.speechAlpha - 0.033);
+                    }
+                    // Totalmente visível
+                    else {
+                        this.speechAlpha = 1;
+                    }
+                }
+            },
+            showSpeech(text) {
+                this.speechBubble = text;
+                this.speechTimer = 120; // Mostra por 2 segundos (120 frames)
+                this.speechAlpha = 0;
             },
             reset() {
                 this.y = groundY - this.height;
                 this.dy = 0;
                 this.grounded = true;
                 this.x = 50;
+                this.speechBubble = "";
+                this.speechTimer = 0;
+                this.speechAlpha = 0;
             }
         };
+
+        // Frases aleatórias do personagem ao passar pela professora
+        const playerSpeechOptions = [
+            "❤️",
+            "Preciso esconder o celular!!!",
+            "Professora linda!!",
+            "Vou correr para ela não me ver"
+        ];
 
         // --- MELHORIA: Entidade Professora como NPC visível ---
         const teacher = {
@@ -988,6 +1069,10 @@
                     updateLivesDisplay();
                     showFeedback('+1 VIDA!', 'green');
                     playSound('collect');
+
+                    // Mostra balão de fala aleatório do personagem
+                    const randomSpeech = playerSpeechOptions[Math.floor(Math.random() * playerSpeechOptions.length)];
+                    player.showSpeech(randomSpeech);
                 }
             }
 
