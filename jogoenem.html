@@ -127,6 +127,17 @@
                 <div class="h-px bg-gray-300 mb-1"></div>
                 <p class="text-[10px] text-gray-500 font-bold mb-1 uppercase tracking-wider">Nota Atual</p>
                 <p id="score-display" class="text-2xl font-black text-black pixel-font leading-none">0</p>
+                <div class="h-px bg-gray-300 my-2"></div>
+                <div class="flex justify-between items-center">
+                    <div>
+                        <p class="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Vidas</p>
+                        <p id="lives-display" class="text-xl font-black text-red-600 pixel-font">❤️ 0</p>
+                    </div>
+                    <div>
+                        <p class="text-[10px] text-gray-500 font-bold uppercase tracking-wider text-right">Tempo</p>
+                        <p id="timer-display" class="text-xl font-black text-blue-600 pixel-font">2:00</p>
+                    </div>
+                </div>
             </div>
             
             <div id="feedback-box" class="hidden px-4 py-2 border-4 border-black shadow-[4px_4px_0px_rgba(0,0,0,1)] rounded-lg transition-all transform scale-0">
@@ -202,7 +213,7 @@
         const ctx = canvas.getContext('2d');
         
         let width, height;
-        const INITIAL_SPEED = 3.5; // Velocidade constante do jogo (ajuste aqui para tornar mais fácil/difícil)
+        const INITIAL_SPEED = 2.8; // Velocidade constante do jogo
         
         function resize() {
             width = window.innerWidth;
@@ -223,14 +234,25 @@
         let groundY = 0;
         let animationId;
         let playerName = ""; // Armazena o nome do aluno
-        
+        let lives = 0; // Sistema de vidas
+        let gameTimer = 120; // 2 minutos em segundos
+        let lastSecond = 0; // Controle do timer
+        let showed900Speech = false; // Controla se já mostrou o balão de 900 pontos
+        let pending900Speech = false; // Controla se há balão de 900 pontos pendente
+
         const WIN_SCORE = 1000;
+        const GAME_TIME_LIMIT = 120; // 2 minutos
 
         // --- Carregamento de Imagens ---
         const teacherImage = new Image();
         teacherImage.src = 'https://i.ibb.co/LDbjwbDS/Captura-de-tela-2025-11-13-090309-removebg-preview.png';
         let teacherImageLoaded = false;
         teacherImage.onload = () => { teacherImageLoaded = true; };
+
+        const catImage = new Image();
+        catImage.src = 'https://i.ibb.co/F1zSWt4/IMG-20231018-181315-821-removebg-preview.png';
+        let catImageLoaded = false;
+        catImage.onload = () => { catImageLoaded = true; };
 
         // --- MELHORIA: Conceitos baseados nas 5 Competências do ENEM ---
         const wordConcepts = [
@@ -276,7 +298,8 @@
             "ENEM é maratona, não sprint. Calma e concentração!"
         ];
         let lastTeacherSpawn = 0;
-        const TEACHER_SPAWN_INTERVAL = 600; // A cada 600 frames (aprox 10 segundos)
+        const TEACHER_SPAWN_INTERVAL = 300; // A cada 300 frames (aprox 5 segundos) - aparece com mais frequência
+        let usedTips = []; // Controla dicas já usadas para não repetir
 
         function spawnTeacher() {
             if (frames - lastTeacherSpawn > TEACHER_SPAWN_INTERVAL && !teacher.isVisible) {
@@ -309,7 +332,17 @@
 
                 // Se estiver seguro, spawna a professora ENTRE dois obstáculos fixos
                 if (!tooClose) {
-                    const tip = teacherTips[Math.floor(Math.random() * teacherTips.length)];
+                    // Seleciona uma dica que não foi usada recentemente
+                    let availableTips = teacherTips.filter(tip => !usedTips.includes(tip));
+                    if (availableTips.length === 0) {
+                        usedTips = []; // Reset se todas foram usadas
+                        availableTips = teacherTips;
+                    }
+                    const tip = availableTips[Math.floor(Math.random() * availableTips.length)];
+                    usedTips.push(tip);
+                    if (usedTips.length > teacherTips.length / 2) {
+                        usedTips.shift(); // Remove a mais antiga
+                    }
 
                     // Spawna obstáculo antes da professora (200px de distância)
                     const obstacleLeft = new GroundObstacle();
@@ -319,6 +352,10 @@
                     // Spawna a professora no meio (com espaço seguro)
                     teacher.spawn(tip);
                     teacher.x = width + 400; // Professora no meio
+
+                    // Mostra balão de fala aleatório do personagem quando a professora aparece na tela
+                    const randomSpeech = playerSpeechOptions[Math.floor(Math.random() * playerSpeechOptions.length)];
+                    player.showSpeech(randomSpeech);
 
                     // Spawna obstáculo depois da professora (200px de distância)
                     const obstacleRight = new GroundObstacle();
@@ -432,7 +469,10 @@
         // --- Entidades ---
         const player = {
             x: 50, y: 0, width: 44, height: 56, dy: 0,
-            jumpForce: 12, gravity: 0.5, grounded: false,
+            jumpForce: 15.5, gravity: 0.6, grounded: false,
+            speechBubble: "", // Texto do balão de fala
+            speechTimer: 0, // Contador para mostrar o balão
+            speechAlpha: 0, // Opacidade do balão
             draw() {
                 ctx.fillStyle = 'rgba(0,0,0,0.15)';
                 if (!this.grounded) {
@@ -460,6 +500,87 @@
                 ctx.fillStyle = '#DC2626'; ctx.fillRect(pX + 4, pY - 4, 36, 10); ctx.fillRect(pX + 20, pY - 4, 24, 4); // Boné
                 ctx.fillStyle = 'black'; ctx.fillRect(pX + 28, pY + 10, 4, 6); ctx.fillRect(pX + 30, pY + 18, 6, 2); // Rosto
                 ctx.fillStyle = '#92400E'; ctx.fillRect(pX - 6, pY + 24, 12, 18); // Mochila
+
+                // Desenha balão de fala se ativo
+                if (this.speechTimer > 0 && this.speechBubble) {
+                    ctx.save();
+                    ctx.globalAlpha = this.speechAlpha;
+
+                    ctx.font = 'bold 11px Inter';
+
+                    // Quebra o texto em linhas se necessário
+                    const maxWidth = 100; // Largura máxima para quebra de linha
+                    const words = this.speechBubble.split(' ');
+                    const lines = [];
+                    let currentLine = '';
+                    let maxLineWidth = 0;
+
+                    // Se for apenas um emoji/símbolo curto, não quebra
+                    if (this.speechBubble.length <= 2) {
+                        lines.push(this.speechBubble);
+                        maxLineWidth = ctx.measureText(this.speechBubble).width;
+                    } else {
+                        words.forEach(word => {
+                            const testLine = currentLine ? currentLine + ' ' + word : word;
+                            const metrics = ctx.measureText(testLine);
+
+                            if (metrics.width > maxWidth && currentLine !== '') {
+                                lines.push(currentLine);
+                                maxLineWidth = Math.max(maxLineWidth, ctx.measureText(currentLine).width);
+                                currentLine = word;
+                            } else {
+                                currentLine = testLine;
+                            }
+                        });
+                        if (currentLine) {
+                            lines.push(currentLine);
+                            maxLineWidth = Math.max(maxLineWidth, ctx.measureText(currentLine).width);
+                        }
+                    }
+
+                    // Calcula dimensões do balão baseado no conteúdo
+                    const padding = 16;
+                    const bubbleWidth = maxLineWidth + padding;
+                    const lineHeight = 14;
+                    const bubbleHeight = (lines.length * lineHeight) + padding;
+                    const bubbleX = pX + (this.width / 2) - (bubbleWidth / 2);
+                    const bubbleY = pY - bubbleHeight - 15;
+
+                    // Balão de fala
+                    ctx.fillStyle = '#FFF';
+                    ctx.strokeStyle = '#000';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.roundRect(bubbleX, bubbleY, bubbleWidth, bubbleHeight, 8);
+                    ctx.fill();
+                    ctx.stroke();
+
+                    // Pontinha do balão
+                    ctx.fillStyle = '#FFF';
+                    ctx.beginPath();
+                    ctx.moveTo(pX + 15, bubbleY + bubbleHeight);
+                    ctx.lineTo(pX + 22, bubbleY + bubbleHeight + 10);
+                    ctx.lineTo(pX + 25, bubbleY + bubbleHeight);
+                    ctx.fill();
+                    ctx.strokeStyle = '#000';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(pX + 15, bubbleY + bubbleHeight);
+                    ctx.lineTo(pX + 22, bubbleY + bubbleHeight + 10);
+                    ctx.lineTo(pX + 25, bubbleY + bubbleHeight);
+                    ctx.stroke();
+
+                    // Desenha o texto (pode ser múltiplas linhas)
+                    ctx.fillStyle = '#000';
+                    ctx.textAlign = 'center';
+                    lines.forEach((line, index) => {
+                        const lineY = bubbleY + (padding / 2) + 10 + (index * lineHeight);
+                        ctx.fillText(line, bubbleX + bubbleWidth / 2, lineY);
+                    });
+                    ctx.textAlign = 'left';
+
+                    ctx.restore();
+                }
             },
             update() {
                 if (input.jump && this.grounded) {
@@ -474,19 +595,54 @@
                     this.dy = 0;
                     this.grounded = true;
                 }
+
+                // Atualiza balão de fala
+                if (this.speechTimer > 0) {
+                    this.speechTimer--;
+
+                    // Fade in (primeiros 10 frames)
+                    if (this.speechTimer > 110) {
+                        this.speechAlpha = Math.min(1, this.speechAlpha + 0.1);
+                    }
+                    // Fade out (últimos 30 frames)
+                    else if (this.speechTimer < 30) {
+                        this.speechAlpha = Math.max(0, this.speechAlpha - 0.033);
+                    }
+                    // Totalmente visível
+                    else {
+                        this.speechAlpha = 1;
+                    }
+                }
+            },
+            showSpeech(text) {
+                this.speechBubble = text;
+                this.speechTimer = 120; // Mostra por 2 segundos (120 frames)
+                this.speechAlpha = 0;
             },
             reset() {
                 this.y = groundY - this.height;
                 this.dy = 0;
                 this.grounded = true;
                 this.x = 50;
+                this.speechBubble = "";
+                this.speechTimer = 0;
+                this.speechAlpha = 0;
             }
         };
 
+        // Frases aleatórias do personagem ao passar pela professora
+        const playerSpeechOptions = [
+            "❤️",
+            "Preciso esconder o celular!!!",
+            "Professora linda!!",
+            "Vou correr para ela não me ver"
+        ];
+
         // --- MELHORIA: Entidade Professora como NPC visível ---
         const teacher = {
-            x: 0, y: 0, width: 60, height: 80,
+            x: 0, y: 0, width: 60, height: 80, // Dimensões da professora
             isVisible: false,
+            collected: false, // Flag para saber se já foi coletada
             tipText: "",
             tipAlpha: 0,
             tipMaxAlpha: 1,
@@ -507,9 +663,18 @@
                     ctx.fillText('Prof.', tX + 10, tY + 40);
                 }
 
+                // Desenha o gato ao lado da professora
+                if (catImageLoaded) {
+                    const catWidth = 50;
+                    const catHeight = 50;
+                    const catX = tX + this.width + 5; // 5px de espaço entre professora e gato
+                    const catY = tY + this.height - catHeight; // Alinha na mesma linha inferior (base)
+                    ctx.drawImage(catImage, catX, catY, catWidth, catHeight);
+                }
+
                 // Desenha o balão de dica acima da professora
                 if (this.tipText && this.tipAlpha > 0) {
-                    const tipX = tX - 70;
+                    const tipX = tX - 20; // Centralizado sobre professora + gato
                     const tipY = tY - 80;
                     const tipWidth = 200;
                     const tipHeight = 60;
@@ -526,19 +691,19 @@
                     ctx.fill();
                     ctx.stroke();
 
-                    // Pontinha do balão
+                    // Pontinha do balão (aponta para o centro entre professora e gato)
                     ctx.fillStyle = '#FFF';
                     ctx.beginPath();
-                    ctx.moveTo(tX + 20, tipY + tipHeight);
-                    ctx.lineTo(tX + 30, tipY + tipHeight + 15);
-                    ctx.lineTo(tX + 35, tipY + tipHeight);
+                    ctx.moveTo(tX + 52, tipY + tipHeight);
+                    ctx.lineTo(tX + 57, tipY + tipHeight + 15);
+                    ctx.lineTo(tX + 62, tipY + tipHeight);
                     ctx.fill();
                     ctx.strokeStyle = '#000';
                     ctx.lineWidth = 3;
                     ctx.beginPath();
-                    ctx.moveTo(tX + 20, tipY + tipHeight);
-                    ctx.lineTo(tX + 30, tipY + tipHeight + 15);
-                    ctx.lineTo(tX + 35, tipY + tipHeight);
+                    ctx.moveTo(tX + 52, tipY + tipHeight);
+                    ctx.lineTo(tX + 57, tipY + tipHeight + 15);
+                    ctx.lineTo(tX + 62, tipY + tipHeight);
                     ctx.stroke();
 
                     // Texto da dica
@@ -592,11 +757,13 @@
                 this.x = width;
                 this.y = groundY - this.height;
                 this.isVisible = true;
+                this.collected = false; // Reset da flag ao spawnar
                 this.tipText = tipMessage;
                 this.tipAlpha = 0;
             },
             reset() {
                 this.isVisible = false;
+                this.collected = false;
                 this.tipText = "";
                 this.tipAlpha = 0;
             }
@@ -711,8 +878,8 @@
 
                 // MELHORIA: Largura máxima fixa e quebra de linha automática
                 ctx.font = 'bold 12px Inter'; // Fonte menor para caber melhor
-                const maxWidth = 70; // Largura máxima do balão (reduzido para facilitar pulo)
-                const padding = 16;
+                const maxWidth = 60; // Largura máxima do balão (reduzido ainda mais)
+                const padding = 14;
 
                 // Quebra o texto em palavras
                 const words = this.text.split(' ');
@@ -870,24 +1037,22 @@
                     }
                 }
 
-                // Se for balão ruim, verifica se há obstáculos próximos
-                if (newBlock.isBad) {
-                    // Verifica proximidade com obstáculos simples
-                    obstacles.forEach(o => {
-                        const distance = Math.abs(newBlock.x - o.x);
-                        if (distance < SAFE_DISTANCE) {
-                            tooClose = true;
-                        }
-                    });
+                // TODOS os balões (bons e ruins) verificam proximidade com obstáculos
+                // Verifica proximidade com obstáculos simples
+                obstacles.forEach(o => {
+                    const distance = Math.abs(newBlock.x - o.x);
+                    if (distance < SAFE_DISTANCE) {
+                        tooClose = true;
+                    }
+                });
 
-                    // Verifica proximidade com obstáculos empilhados
-                    stackedObstacles.forEach(s => {
-                        const distance = Math.abs(newBlock.x - s.x);
-                        if (distance < SAFE_DISTANCE) {
-                            tooClose = true;
-                        }
-                    });
-                }
+                // Verifica proximidade com obstáculos empilhados
+                stackedObstacles.forEach(s => {
+                    const distance = Math.abs(newBlock.x - s.x);
+                    if (distance < SAFE_DISTANCE) {
+                        tooClose = true;
+                    }
+                });
 
                 // Se estiver muito perto, não spawna e tenta novamente mais tarde
                 if (tooClose) {
@@ -903,7 +1068,7 @@
         function updateEntities() {
             player.update();
             teacher.update();
-            
+
             obstacles.forEach(o => o.update());
             stackedObstacles.forEach(s => s.update());
             wordBlocks.forEach(w => w.update());
@@ -911,6 +1076,25 @@
             obstacles = obstacles.filter(o => !o.markedForDeletion);
             stackedObstacles = stackedObstacles.filter(s => !s.markedForDeletion);
             wordBlocks = wordBlocks.filter(w => !w.markedForDeletion);
+
+            // Verifica se atingiu 900 pontos e mostra balão especial
+            if (score >= 900 && !showed900Speech) {
+                // Se há um balão ativo (da professora), aguarda para mostrar depois
+                if (player.speechTimer > 0) {
+                    pending900Speech = true;
+                } else {
+                    player.showSpeech("Eu quero é medicina!!");
+                    showed900Speech = true;
+                    pending900Speech = false;
+                }
+            }
+
+            // Se há balão pendente de 900 pontos e o balão atual terminou, mostra agora
+            if (pending900Speech && player.speechTimer === 0) {
+                player.showSpeech("Eu quero é medicina!!");
+                showed900Speech = true;
+                pending900Speech = false;
+            }
         }
 
         function drawEntities() {
@@ -937,17 +1121,48 @@
         }
 
         function handleCollisions() {
+            // Colisão com a Professora + Gato (ganha vida)
+            if (teacher.isVisible && !teacher.collected) {
+                // Hitbox expandida para incluir professora e gato
+                const teacherRect = { x: teacher.x, y: teacher.y, width: 115, height: teacher.height }; // 60 + 50 + 5
+                if (checkCollision(player, teacherRect)) {
+                    teacher.collected = true;
+                    lives++;
+                    updateLivesDisplay();
+                    showFeedback('+1 VIDA!', 'green');
+                    playSound('collect');
+                }
+            }
+
             // Colisão com Obstáculos simples (Distrações)
             obstacles.forEach(o => {
                 if (checkCollision(player, o)) {
-                    gameOver(false); // Fim de jogo por colisão
+                    if (lives > 0) {
+                        lives--;
+                        updateLivesDisplay();
+                        showFeedback('-1 VIDA!', 'red');
+                        playSound('bad');
+                        flashDamage();
+                        o.markedForDeletion = true; // Remove obstáculo após colidir
+                    } else {
+                        gameOver(false); // Fim de jogo sem vidas
+                    }
                 }
             });
 
             // Colisão com Obstáculos empilhados
             stackedObstacles.forEach(s => {
                 if (s.checkCollision(player)) {
-                    gameOver(false); // Fim de jogo por colisão
+                    if (lives > 0) {
+                        lives--;
+                        updateLivesDisplay();
+                        showFeedback('-1 VIDA!', 'red');
+                        playSound('bad');
+                        flashDamage();
+                        s.markedForDeletion = true; // Remove obstáculo após colidir
+                    } else {
+                        gameOver(false); // Fim de jogo sem vidas
+                    }
                 }
             });
 
@@ -960,7 +1175,7 @@
                     w.markedForDeletion = true;
                     score += w.concept.points;
                     updateScoreDisplay();
-                    
+
                     if (w.isBad) {
                         showFeedback(`-${Math.abs(w.concept.points)} ${w.concept.competência}`, 'red');
                         playSound('bad');
@@ -983,17 +1198,29 @@
             // Mantém velocidade constante (sem aceleração)
             speed = INITIAL_SPEED;
 
+            // Atualiza o timer (a cada 60 frames = 1 segundo)
+            if (frames % 60 === 0 && frames > 0) {
+                gameTimer--;
+                updateTimerDisplay();
+
+                // Verifica se o tempo acabou
+                if (gameTimer <= 0) {
+                    gameOver(false); // Tempo esgotado = derrota
+                    return;
+                }
+            }
+
             // Spawns
             spawnObstacle();
             spawnWordBlock();
             spawnTeacher(); // Spawna a professora NPC
-            
+
             // Atualiza e Desenha
             updateEntities();
             drawEntities();
             handleCollisions();
 
-            // Verifica a vitória
+            // Verifica a vitória (precisa atingir 1000 pontos ANTES do tempo acabar)
             if (score >= WIN_SCORE) {
                 gameOver(true);
                 return;
@@ -1035,16 +1262,23 @@
             cancelAnimationFrame(animationId);
             frames = 0;
             score = 0;
+            lives = 0; // Reset vidas
+            gameTimer = GAME_TIME_LIMIT; // Reset timer para 2 minutos
             speed = INITIAL_SPEED;
             obstacles = [];
             stackedObstacles = [];
             wordBlocks = [];
+            usedTips = []; // Reset dicas usadas
+            showed900Speech = false; // Reset balão de 900 pontos
+            pending900Speech = false; // Reset balão pendente
             lastObstacleFrame = -100; // Reinicia negativo para spawnar logo
             lastWordBlockFrame = -80; // Reinicia negativo para spawnar logo
             lastTeacherSpawn = 0; // Reseta spawn da professora
             player.reset();
             teacher.reset();
             updateScoreDisplay();
+            updateLivesDisplay();
+            updateTimerDisplay();
         }
 
         function gameOver(win) {
@@ -1139,6 +1373,28 @@
             document.getElementById('score-display').textContent = score;
         }
 
+        function updateLivesDisplay() {
+            const heartsDisplay = lives > 0 ? '❤️ '.repeat(lives) : '0';
+            document.getElementById('lives-display').textContent = heartsDisplay;
+        }
+
+        function updateTimerDisplay() {
+            const minutes = Math.floor(gameTimer / 60);
+            const seconds = gameTimer % 60;
+            const timeString = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            document.getElementById('timer-display').textContent = timeString;
+
+            // Alerta visual quando tempo está acabando (últimos 30 segundos)
+            const timerEl = document.getElementById('timer-display');
+            if (gameTimer <= 30 && gameTimer > 0) {
+                timerEl.classList.add('text-red-600');
+                timerEl.classList.remove('text-blue-600');
+            } else {
+                timerEl.classList.add('text-blue-600');
+                timerEl.classList.remove('text-red-600');
+            }
+        }
+
         function showFeedback(text, color) {
             const box = document.getElementById('feedback-box');
             const textEl = document.getElementById('feedback-text');
@@ -1194,4 +1450,5 @@
 
     </script>
 </body>
+
 </html>
