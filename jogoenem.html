@@ -913,24 +913,22 @@
                     }
                 }
 
-                // Se for balão ruim, verifica se há obstáculos próximos
-                if (newBlock.isBad) {
-                    // Verifica proximidade com obstáculos simples
-                    obstacles.forEach(o => {
-                        const distance = Math.abs(newBlock.x - o.x);
-                        if (distance < SAFE_DISTANCE) {
-                            tooClose = true;
-                        }
-                    });
+                // TODOS os balões (bons e ruins) verificam proximidade com obstáculos
+                // Verifica proximidade com obstáculos simples
+                obstacles.forEach(o => {
+                    const distance = Math.abs(newBlock.x - o.x);
+                    if (distance < SAFE_DISTANCE) {
+                        tooClose = true;
+                    }
+                });
 
-                    // Verifica proximidade com obstáculos empilhados
-                    stackedObstacles.forEach(s => {
-                        const distance = Math.abs(newBlock.x - s.x);
-                        if (distance < SAFE_DISTANCE) {
-                            tooClose = true;
-                        }
-                    });
-                }
+                // Verifica proximidade com obstáculos empilhados
+                stackedObstacles.forEach(s => {
+                    const distance = Math.abs(newBlock.x - s.x);
+                    if (distance < SAFE_DISTANCE) {
+                        tooClose = true;
+                    }
+                });
 
                 // Se estiver muito perto, não spawna e tenta novamente mais tarde
                 if (tooClose) {
