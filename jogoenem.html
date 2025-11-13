@@ -226,6 +226,12 @@
         
         const WIN_SCORE = 1000;
 
+        // --- Carregamento de Imagens ---
+        const teacherImage = new Image();
+        teacherImage.src = 'https://i.ibb.co/LDbjwbDS/Captura-de-tela-2025-11-13-090309-removebg-preview.png';
+        let teacherImageLoaded = false;
+        teacherImage.onload = () => { teacherImageLoaded = true; };
+
         // --- MELHORIA: Conceitos baseados nas 5 Competências do ENEM ---
         const wordConcepts = [
             // Competência 1: Domínio da escrita formal
@@ -479,7 +485,7 @@
 
         // --- MELHORIA: Entidade Professora como NPC visível ---
         const teacher = {
-            x: 0, y: 0, width: 50, height: 60,
+            x: 0, y: 0, width: 60, height: 60,
             isVisible: false,
             tipText: "",
             tipAlpha: 0,
@@ -489,68 +495,21 @@
                 const tX = this.x;
                 const tY = this.y;
 
-                // Desenho da Professora - MELHORADO
-                // Vestido/Saia (verde elegante)
-                ctx.fillStyle = '#10B981';
-                ctx.fillRect(tX + 5, tY + 30, 40, 30);
-                ctx.fillStyle = '#059669'; // Detalhe Vestido
-                ctx.fillRect(tX + 8, tY + 35, 34, 3);
-                ctx.fillRect(tX + 8, tY + 42, 34, 3);
-
-                // Blusa (amarelo dourado)
-                ctx.fillStyle = '#FBBF24';
-                ctx.fillRect(tX + 10, tY + 18, 30, 14);
-
-                // Braços
-                ctx.fillStyle = '#F59E0B';
-                ctx.fillRect(tX + 2, tY + 20, 8, 16);
-                ctx.fillRect(tX + 40, tY + 20, 8, 16);
-
-                // Mãos (pele)
-                ctx.fillStyle = '#FFD1A4';
-                ctx.fillRect(tX, tY + 36, 6, 6);
-                ctx.fillRect(tX + 44, tY + 36, 6, 6);
-
-                // Livro na mão esquerda
-                ctx.fillStyle = '#DC2626';
-                ctx.fillRect(tX - 4, tY + 32, 10, 12);
-                ctx.fillStyle = '#FFF';
-                ctx.fillRect(tX - 3, tY + 34, 8, 2);
-                ctx.fillRect(tX - 3, tY + 38, 8, 2);
-
-                // Cabeça (pele)
-                ctx.fillStyle = '#FFD1A4';
-                ctx.fillRect(tX + 12, tY + 2, 26, 22);
-
-                // Cabelo (marrom arrumado com coque)
-                ctx.fillStyle = '#92400E';
-                ctx.fillRect(tX + 8, tY - 2, 34, 8); // Topo
-                ctx.fillRect(tX + 8, tY + 6, 8, 12); // Lado esquerdo
-                ctx.fillRect(tX + 34, tY + 6, 8, 12); // Lado direito
-                ctx.fillRect(tX + 36, tY + 2, 10, 8); // Coque
-
-                // Óculos
-                ctx.strokeStyle = '#374151';
-                ctx.lineWidth = 2;
-                ctx.strokeRect(tX + 14, tY + 9, 8, 6); // Lente esquerda
-                ctx.strokeRect(tX + 28, tY + 9, 8, 6); // Lente direita
-                ctx.beginPath();
-                ctx.moveTo(tX + 22, tY + 12);
-                ctx.lineTo(tX + 28, tY + 12);
-                ctx.stroke(); // Ponte dos óculos
-
-                // Olhos atrás dos óculos
-                ctx.fillStyle = 'black';
-                ctx.fillRect(tX + 16, tY + 11, 3, 3);
-                ctx.fillRect(tX + 30, tY + 11, 3, 3);
-
-                // Sorriso
-                ctx.fillStyle = '#DC2626';
-                ctx.fillRect(tX + 20, tY + 19, 10, 2);
+                // Desenha a imagem da professora se estiver carregada
+                if (teacherImageLoaded) {
+                    ctx.drawImage(teacherImage, tX, tY, this.width, this.height);
+                } else {
+                    // Fallback: desenha um retângulo simples se a imagem não carregar
+                    ctx.fillStyle = '#FBBF24';
+                    ctx.fillRect(tX, tY, this.width, this.height);
+                    ctx.fillStyle = '#000';
+                    ctx.font = 'bold 10px Inter';
+                    ctx.fillText('Prof.', tX + 10, tY + 30);
+                }
 
                 // Desenha o balão de dica acima da professora
                 if (this.tipText && this.tipAlpha > 0) {
-                    const tipX = tX - 80;
+                    const tipX = tX - 70;
                     const tipY = tY - 80;
                     const tipWidth = 200;
                     const tipHeight = 60;
@@ -570,16 +529,16 @@
                     // Pontinha do balão
                     ctx.fillStyle = '#FFF';
                     ctx.beginPath();
-                    ctx.moveTo(tX + 15, tipY + tipHeight);
-                    ctx.lineTo(tX + 20, tipY + tipHeight + 15);
-                    ctx.lineTo(tX + 25, tipY + tipHeight);
+                    ctx.moveTo(tX + 20, tipY + tipHeight);
+                    ctx.lineTo(tX + 30, tipY + tipHeight + 15);
+                    ctx.lineTo(tX + 35, tipY + tipHeight);
                     ctx.fill();
                     ctx.strokeStyle = '#000';
                     ctx.lineWidth = 3;
                     ctx.beginPath();
-                    ctx.moveTo(tX + 15, tipY + tipHeight);
-                    ctx.lineTo(tX + 20, tipY + tipHeight + 15);
-                    ctx.lineTo(tX + 25, tipY + tipHeight);
+                    ctx.moveTo(tX + 20, tipY + tipHeight);
+                    ctx.lineTo(tX + 30, tipY + tipHeight + 15);
+                    ctx.lineTo(tX + 35, tipY + tipHeight);
                     ctx.stroke();
 
                     // Texto da dica
