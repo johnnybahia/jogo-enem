@@ -226,6 +226,12 @@
         
         const WIN_SCORE = 1000;
 
+        // --- Carregamento de Imagens ---
+        const teacherImage = new Image();
+        teacherImage.src = 'https://i.ibb.co/LDbjwbDS/Captura-de-tela-2025-11-13-090309-removebg-preview.png';
+        let teacherImageLoaded = false;
+        teacherImage.onload = () => { teacherImageLoaded = true; };
+
         // --- MELHORIA: Conceitos baseados nas 5 Competências do ENEM ---
         const wordConcepts = [
             // Competência 1: Domínio da escrita formal
@@ -233,7 +239,7 @@
             { text: "Clareza", type: 'good', competência: 'C1', points: 40 },
             { text: "Gíria", type: 'bad', competência: 'C1', points: -40 },
             { text: "Internetês", type: 'bad', competência: 'C1', points: -40 },
-            
+
             // Competência 2: Compreender o tema e aplicar conceitos
             { text: "Tese", type: 'good', competência: 'C2', points: 40 },
             { text: "Repertório", type: 'good', competência: 'C2', points: 40 },
@@ -276,7 +282,7 @@
             if (frames - lastTeacherSpawn > TEACHER_SPAWN_INTERVAL && !teacher.isVisible) {
                 const SAFE_DISTANCE = 250; // Distância mínima de obstáculos e balões
                 let tooClose = false;
-                
+
                 // Verifica proximidade com obstáculos simples
                 obstacles.forEach(o => {
                     const distance = Math.abs(width - o.x);
@@ -284,7 +290,7 @@
                         tooClose = true;
                     }
                 });
-                
+
                 // Verifica proximidade com obstáculos empilhados
                 stackedObstacles.forEach(s => {
                     const distance = Math.abs(width - s.x);
@@ -292,7 +298,7 @@
                         tooClose = true;
                     }
                 });
-                
+
                 // Verifica proximidade com balões
                 wordBlocks.forEach(w => {
                     const distance = Math.abs(width - w.x);
@@ -300,11 +306,25 @@
                         tooClose = true;
                     }
                 });
-                
-                // Se estiver seguro, spawna a professora
+
+                // Se estiver seguro, spawna a professora ENTRE dois obstáculos fixos
                 if (!tooClose) {
                     const tip = teacherTips[Math.floor(Math.random() * teacherTips.length)];
+
+                    // Spawna obstáculo antes da professora (200px de distância)
+                    const obstacleLeft = new GroundObstacle();
+                    obstacleLeft.x = width + 200;
+                    obstacles.push(obstacleLeft);
+
+                    // Spawna a professora no meio (com espaço seguro)
                     teacher.spawn(tip);
+                    teacher.x = width + 400; // Professora no meio
+
+                    // Spawna obstáculo depois da professora (200px de distância)
+                    const obstacleRight = new GroundObstacle();
+                    obstacleRight.x = width + 600;
+                    obstacles.push(obstacleRight);
+
                     lastTeacherSpawn = frames;
                 } else {
                     lastTeacherSpawn = frames - 100; // Tenta novamente em breve
@@ -465,7 +485,7 @@
 
         // --- MELHORIA: Entidade Professora como NPC visível ---
         const teacher = {
-            x: 0, y: 0, width: 40, height: 60,
+            x: 0, y: 0, width: 60, height: 80,
             isVisible: false,
             tipText: "",
             tipAlpha: 0,
@@ -475,32 +495,21 @@
                 const tX = this.x;
                 const tY = this.y;
 
-                // Desenho da Professora (Estilo similar ao jogador, mas com vestido/saia)
-                ctx.fillStyle = '#10B981'; // Vestido/Saia
-                ctx.fillRect(tX, tY + 30, 40, 30);
-                ctx.fillStyle = '#059669'; // Detalhe Vestido
-                ctx.fillRect(tX + 5, tY + 35, 30, 5);
-
-                ctx.fillStyle = '#FBBF24'; // Blusa
-                ctx.fillRect(tX + 5, tY + 15, 30, 15);
-                
-                ctx.fillStyle = '#FFD1A4'; // Cabeça
-                ctx.fillRect(tX + 8, tY, 24, 20); 
-                ctx.fillStyle = '#92400E'; // Cabelo
-                ctx.fillRect(tX + 4, tY - 4, 32, 8);
-                ctx.fillRect(tX + 28, tY + 4, 8, 12);
-                
-                ctx.fillStyle = 'black'; // Olhos
-                ctx.fillRect(tX + 12, tY + 6, 4, 4);
-                ctx.fillRect(tX + 24, tY + 6, 4, 4);
-                
-                ctx.fillStyle = '#1D4ED8'; // Braços
-                ctx.fillRect(tX - 5, tY + 18, 10, 12);
-                ctx.fillRect(tX + 35, tY + 18, 10, 12);
+                // Desenha a imagem da professora se estiver carregada
+                if (teacherImageLoaded) {
+                    ctx.drawImage(teacherImage, tX, tY, this.width, this.height);
+                } else {
+                    // Fallback: desenha um retângulo simples se a imagem não carregar
+                    ctx.fillStyle = '#FBBF24';
+                    ctx.fillRect(tX, tY, this.width, this.height);
+                    ctx.fillStyle = '#000';
+                    ctx.font = 'bold 10px Inter';
+                    ctx.fillText('Prof.', tX + 10, tY + 40);
+                }
 
                 // Desenha o balão de dica acima da professora
                 if (this.tipText && this.tipAlpha > 0) {
-                    const tipX = tX - 80;
+                    const tipX = tX - 70;
                     const tipY = tY - 80;
                     const tipWidth = 200;
                     const tipHeight = 60;
@@ -520,16 +529,16 @@
                     // Pontinha do balão
                     ctx.fillStyle = '#FFF';
                     ctx.beginPath();
-                    ctx.moveTo(tX + 15, tipY + tipHeight);
-                    ctx.lineTo(tX + 20, tipY + tipHeight + 15);
-                    ctx.lineTo(tX + 25, tipY + tipHeight);
+                    ctx.moveTo(tX + 20, tipY + tipHeight);
+                    ctx.lineTo(tX + 30, tipY + tipHeight + 15);
+                    ctx.lineTo(tX + 35, tipY + tipHeight);
                     ctx.fill();
                     ctx.strokeStyle = '#000';
                     ctx.lineWidth = 3;
                     ctx.beginPath();
-                    ctx.moveTo(tX + 15, tipY + tipHeight);
-                    ctx.lineTo(tX + 20, tipY + tipHeight + 15);
-                    ctx.lineTo(tX + 25, tipY + tipHeight);
+                    ctx.moveTo(tX + 20, tipY + tipHeight);
+                    ctx.lineTo(tX + 30, tipY + tipHeight + 15);
+                    ctx.lineTo(tX + 35, tipY + tipHeight);
                     ctx.stroke();
 
                     // Texto da dica
@@ -633,7 +642,7 @@
                     ctx.fillStyle = '#9CA3AF'; ctx.fillRect(x + 6, y + 22, 4, 10); ctx.fillRect(x + 3, y + 25, 10, 4);
                 } else if (this.obstacleType === 'headphone') {
                     // Fone de ouvido (reduzido)
-                    ctx.fillStyle = '#1F2937'; 
+                    ctx.fillStyle = '#1F2937';
                     // Arco do fone (menor)
                     ctx.beginPath();
                     ctx.arc(x + 20, y + 12, 12, Math.PI, 0, false); // Raio reduzido de 15 para 12
@@ -647,6 +656,16 @@
                     ctx.fillStyle = '#60A5FA';
                     ctx.beginPath(); ctx.arc(x + 10, y + 26, 2.5, 0, Math.PI*2); ctx.fill(); // Raio de 3 para 2.5
                     ctx.beginPath(); ctx.arc(x + 30, y + 26, 2.5, 0, Math.PI*2); ctx.fill(); // Raio de 3 para 2.5
+
+                    // Símbolos de música (♪)
+                    ctx.fillStyle = '#10B981';
+                    ctx.font = 'bold 12px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('♪', x + 20, y + 8);
+                    ctx.font = 'bold 8px Arial';
+                    ctx.fillText('♪', x + 15, y + 4);
+                    ctx.fillText('♪', x + 25, y + 6);
+                    ctx.textAlign = 'left';
                 }
             }
             update() {
@@ -686,40 +705,47 @@
             constructor() {
                 // Sorteia um conceito (bom ou ruim)
                 this.concept = wordConcepts[Math.floor(Math.random() * wordConcepts.length)];
-                
+
                 this.isBad = this.concept.type === 'bad';
                 this.text = this.concept.text;
-                
-                ctx.font = 'bold 14px Inter'; 
-                const metrics = ctx.measureText(this.text);
-                
-                // MELHORIA: Balões ruins são mais estreitos (menor comprimento)
-                if (this.isBad) {
-                    this.width = metrics.width + 16; // Mais estreito - reduzido de 30 para 16
-                    this.height = 34; // Altura mantida igual
-                } else {
-                    this.width = metrics.width + 30; 
-                    this.height = 34;
+
+                // MELHORIA: Largura máxima fixa e quebra de linha automática
+                ctx.font = 'bold 12px Inter'; // Fonte menor para caber melhor
+                const maxWidth = 70; // Largura máxima do balão (reduzido para facilitar pulo)
+                const padding = 16;
+
+                // Quebra o texto em palavras
+                const words = this.text.split(' ');
+                this.lines = [];
+                let currentLine = '';
+
+                words.forEach(word => {
+                    const testLine = currentLine ? currentLine + ' ' + word : word;
+                    const metrics = ctx.measureText(testLine);
+
+                    if (metrics.width > maxWidth && currentLine !== '') {
+                        this.lines.push(currentLine);
+                        currentLine = word;
+                    } else {
+                        currentLine = testLine;
+                    }
+                });
+                if (currentLine) {
+                    this.lines.push(currentLine);
                 }
-                
+
+                // MELHORIA: Tamanho padrão com altura dinâmica baseada no número de linhas
+                this.width = maxWidth + padding;
+                this.height = 18 + (this.lines.length * 14); // 14px por linha + padding menor
+
                 this.x = width;
-                
-                // MELHORIA: Ambos os tipos têm alturas variadas aleatórias
-                // Balões BONS: Para COLETAR (podem estar baixos ou altos)
-                // Balões RUINS: Para PULAR POR CIMA (também variados, mas limitados pelo pulo)
-                if (this.isBad) {
-                    // Balões ruins: 40 a 100 pixels do chão (variado)
-                    // Topo máximo: 100 + 34 = 134px (jogador pula até 144px, margem de 10px)
-                    const minH = 40; 
-                    const maxH = 100;
-                    this.y = groundY - minH - Math.random() * (maxH - minH);
-                } else {
-                    // Balões bons: 40 a 120 pixels do chão (bem variados)
-                    // Podem estar baixos (fácil pegar) ou altos (precisa pular)
-                    const minH = 40; 
-                    const maxH = 120;
-                    this.y = groundY - minH - Math.random() * (maxH - minH);
-                }
+
+                // MELHORIA: Apenas 2 alturas possíveis para todos os balões
+                // Altura 1 (ALTA): 120 pixels do chão - acima do personagem (pode passar por baixo ou pular para pegar)
+                // Altura 2 (BAIXA): 30 pixels do chão - na linha do personagem (pode pular por cima ou pegar passando)
+                const alturas = [120, 30]; // Duas alturas fixas (baixou de 45 para 30)
+                const alturaEscolhida = alturas[Math.floor(Math.random() * alturas.length)];
+                this.y = groundY - alturaEscolhida;
 
                 this.markedForDeletion = false;
                 this.oscillationOffset = Math.random() * Math.PI * 2;
@@ -732,17 +758,29 @@
                     ctx.fillStyle = '#FCA5A5'; ctx.strokeStyle = '#DC2626'; ctx.lineWidth = 2;
                     ctx.beginPath(); ctx.roundRect(this.x, finalY, this.width, this.height, 20); ctx.fill(); ctx.stroke();
                     ctx.fillStyle = '#DC2626';
-                    ctx.font = 'bold 14px Inter';
+                    ctx.font = 'bold 12px Inter';
                     ctx.textAlign = 'center';
-                    ctx.fillText(this.text, this.x + this.width / 2, finalY + 22);
+
+                    // Desenha cada linha de texto
+                    this.lines.forEach((line, index) => {
+                        const lineY = finalY + 16 + (index * 14);
+                        ctx.fillText(line, this.x + this.width / 2, lineY);
+                    });
+
                     ctx.textAlign = 'left';
                 } else {
                     ctx.fillStyle = '#A7F3D0'; ctx.strokeStyle = '#059669'; ctx.lineWidth = 2;
                     ctx.beginPath(); ctx.roundRect(this.x, finalY, this.width, this.height, 20); ctx.fill(); ctx.stroke();
                     ctx.fillStyle = '#059669';
-                    ctx.font = 'bold 14px Inter';
+                    ctx.font = 'bold 12px Inter';
                     ctx.textAlign = 'center';
-                    ctx.fillText(this.text, this.x + this.width / 2, finalY + 22);
+
+                    // Desenha cada linha de texto
+                    this.lines.forEach((line, index) => {
+                        const lineY = finalY + 16 + (index * 14);
+                        ctx.fillText(line, this.x + this.width / 2, lineY);
+                    });
+
                     ctx.textAlign = 'left';
                 }
             }
@@ -764,8 +802,9 @@
         function spawnObstacle() {
             if (frames - lastObstacleFrame > OBSTACLE_SPAWN_RATE + Math.random() * 80) {
                 const SAFE_DISTANCE = 200; // Distância mínima segura entre obstáculo e balão ruim
+                const MIN_OBSTACLE_DISTANCE = 150; // Distância mínima entre obstáculos para garantir pulo
                 let tooClose = false;
-                
+
                 // Verifica se há balões ruins próximos
                 wordBlocks.forEach(w => {
                     if (w.isBad) {
@@ -775,13 +814,37 @@
                         }
                     }
                 });
-                
-                // Se estiver muito perto de um balão ruim, não spawna e tenta novamente mais tarde
+
+                // IMPORTANTE: Verifica se há obstáculos muito próximos (evita obstáculos impossíveis)
+                obstacles.forEach(o => {
+                    const distance = Math.abs(width - o.x);
+                    if (distance < MIN_OBSTACLE_DISTANCE) {
+                        tooClose = true;
+                    }
+                });
+
+                // Verifica obstáculos empilhados também
+                stackedObstacles.forEach(s => {
+                    const distance = Math.abs(width - s.x);
+                    if (distance < MIN_OBSTACLE_DISTANCE) {
+                        tooClose = true;
+                    }
+                });
+
+                // Verifica se há professora próxima
+                if (teacher.isVisible) {
+                    const teacherDistance = Math.abs(width - teacher.x);
+                    if (teacherDistance < 300) { // Não spawna perto da professora
+                        tooClose = true;
+                    }
+                }
+
+                // Se estiver muito perto, não spawna e tenta novamente mais tarde
                 if (tooClose) {
                     lastObstacleFrame = frames - 30; // Tenta de novo em breve (30 frames)
                     return;
                 }
-                
+
                 // 20% de chance de spawnar obstáculos empilhados
                 if (Math.random() < 0.2) {
                     stackedObstacles.push(new StackedObstacle());
@@ -795,12 +858,20 @@
         function spawnWordBlock() {
             if (frames - lastWordBlockFrame > WORDBLOCK_SPAWN_RATE + Math.random() * 120) {
                 const newBlock = new WordBlock();
-                
+
+                const SAFE_DISTANCE = 200; // Distância mínima segura
+                let tooClose = false;
+
+                // IMPORTANTE: Verifica se há professora visível próxima - NÃO spawna balões perto dela
+                if (teacher.isVisible) {
+                    const teacherDistance = Math.abs(newBlock.x - teacher.x);
+                    if (teacherDistance < 400) { // Distância maior para garantir área limpa
+                        tooClose = true;
+                    }
+                }
+
                 // Se for balão ruim, verifica se há obstáculos próximos
                 if (newBlock.isBad) {
-                    const SAFE_DISTANCE = 200; // Distância mínima segura entre balão ruim e obstáculo
-                    let tooClose = false;
-                    
                     // Verifica proximidade com obstáculos simples
                     obstacles.forEach(o => {
                         const distance = Math.abs(newBlock.x - o.x);
@@ -808,7 +879,7 @@
                             tooClose = true;
                         }
                     });
-                    
+
                     // Verifica proximidade com obstáculos empilhados
                     stackedObstacles.forEach(s => {
                         const distance = Math.abs(newBlock.x - s.x);
@@ -816,14 +887,14 @@
                             tooClose = true;
                         }
                     });
-                    
-                    // Se estiver muito perto de um obstáculo, não spawna e tenta novamente mais tarde
-                    if (tooClose) {
-                        lastWordBlockFrame = frames - 30; // Tenta de novo em breve (30 frames)
-                        return;
-                    }
                 }
-                
+
+                // Se estiver muito perto, não spawna e tenta novamente mais tarde
+                if (tooClose) {
+                    lastWordBlockFrame = frames - 30; // Tenta de novo em breve (30 frames)
+                    return;
+                }
+
                 wordBlocks.push(newBlock);
                 lastWordBlockFrame = frames;
             }
