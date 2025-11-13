@@ -516,7 +516,7 @@
 
         // --- MELHORIA: Entidade Professora como NPC visível ---
         const teacher = {
-            x: 0, y: 0, width: 115, height: 80, // Largura aumentada para incluir gato (60 + 50 + 5)
+            x: 0, y: 0, width: 60, height: 80, // Dimensões da professora
             isVisible: false,
             collected: false, // Flag para saber se já foi coletada
             tipText: "",
@@ -544,13 +544,13 @@
                     const catWidth = 50;
                     const catHeight = 50;
                     const catX = tX + this.width + 5; // 5px de espaço entre professora e gato
-                    const catY = tY + this.height - catHeight; // Alinha na base
+                    const catY = tY; // Mesma linha que a professora
                     ctx.drawImage(catImage, catX, catY, catWidth, catHeight);
                 }
 
                 // Desenha o balão de dica acima da professora
                 if (this.tipText && this.tipAlpha > 0) {
-                    const tipX = tX - 40; // Ajustado para centralizar melhor sobre professora + gato
+                    const tipX = tX - 20; // Centralizado sobre professora + gato
                     const tipY = tY - 80;
                     const tipWidth = 200;
                     const tipHeight = 60;
@@ -567,19 +567,19 @@
                     ctx.fill();
                     ctx.stroke();
 
-                    // Pontinha do balão
+                    // Pontinha do balão (aponta para o centro entre professora e gato)
                     ctx.fillStyle = '#FFF';
                     ctx.beginPath();
-                    ctx.moveTo(tX + 40, tipY + tipHeight);
-                    ctx.lineTo(tX + 50, tipY + tipHeight + 15);
-                    ctx.lineTo(tX + 60, tipY + tipHeight);
+                    ctx.moveTo(tX + 52, tipY + tipHeight);
+                    ctx.lineTo(tX + 57, tipY + tipHeight + 15);
+                    ctx.lineTo(tX + 62, tipY + tipHeight);
                     ctx.fill();
                     ctx.strokeStyle = '#000';
                     ctx.lineWidth = 3;
                     ctx.beginPath();
-                    ctx.moveTo(tX + 40, tipY + tipHeight);
-                    ctx.lineTo(tX + 50, tipY + tipHeight + 15);
-                    ctx.lineTo(tX + 60, tipY + tipHeight);
+                    ctx.moveTo(tX + 52, tipY + tipHeight);
+                    ctx.lineTo(tX + 57, tipY + tipHeight + 15);
+                    ctx.lineTo(tX + 62, tipY + tipHeight);
                     ctx.stroke();
 
                     // Texto da dica
@@ -980,9 +980,10 @@
         }
 
         function handleCollisions() {
-            // Colisão com a Professora (ganha vida)
+            // Colisão com a Professora + Gato (ganha vida)
             if (teacher.isVisible && !teacher.collected) {
-                const teacherRect = { x: teacher.x, y: teacher.y, width: teacher.width, height: teacher.height };
+                // Hitbox expandida para incluir professora e gato
+                const teacherRect = { x: teacher.x, y: teacher.y, width: 115, height: teacher.height }; // 60 + 50 + 5
                 if (checkCollision(player, teacherRect)) {
                     teacher.collected = true;
                     lives++;
