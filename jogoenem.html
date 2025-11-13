@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Super Enem Bros - Missão 1000</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;700;900&display=swap');
+        
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #60A5FA;
+            font-family: 'Inter', sans-serif;
+            touch-action: none; 
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        .pixel-font { font-family: 'Press Start 2P', cursive; }
+
+        #ui-layer {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        #menu-screen, #game-over-screen {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(0,0,0,0.85);
+            backdrop-filter: blur(5px);
+            pointer-events: auto;
+            z-index: 50;
+        }
+
+        /* Oculta quando tem .hidden */
+        .hidden {
+            display: none !important;
+        }
+
+        #gameCanvas {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        .game-card {
+            background: #FFF;
+            border: 4px solid #000;
+            box-shadow: 8px 8px 0px #000;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .interactive-btn {
+            pointer-events: auto;
+            cursor: pointer;
+            touch-action: manipulation;
+            transition: transform 0.1s;
+        }
+        .interactive-btn:active { transform: scale(0.95); }
+
+        #damage-overlay {
+            position: absolute; inset: 0;
+            background-color: rgba(255, 0, 0, 0.3);
+            pointer-events: none; opacity: 0;
+            transition: opacity 0.1s; z-index: 40;
+        }
+
+        /* Estilo do Input */
+        .retro-input {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 14px;
+            text-align: center;
+            border: 4px solid #2563EB; /* Borda azul destaque */
+            box-shadow: 4px 4px 0px #000;
+            outline: none;
+            text-transform: uppercase;
+            background-color: #EFF6FF;
+        }
+        .retro-input:focus { 
+            background-color: #FFF; 
+            border-color: #000;
+        }
+        .input-error {
+            animation: shake 0.5s ease-in-out;
+            border-color: #DC2626 !important;
+            background-color: #FEF2F2 !important;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        /* Estilo da Tabela de Ranking */
+        .ranking-row:nth-child(odd) { background-color: #F3F4F6; }
+        .ranking-row:nth-child(1) .rank-num { color: #D97706; } /* Ouro */
+        .ranking-row:nth-child(2) .rank-num { color: #9CA3AF; } /* Prata */
+        .ranking-row:nth-child(3) .rank-num { color: #B45309; } /* Bronze */
+    </style>
+</head>
+<body>
+
+    <div id="damage-overlay"></div>
+
+    <div id="ui-layer">
+        <div class="flex justify-between items-start w-full max-w-4xl mx-auto p-4">
+            <div class="bg-white p-3 border-4 border-black shadow-[4px_4px_0px_rgba(0,0,0,1)] rounded-lg min-w-[120px]">
+                <p class="text-[10px] text-gray-500 font-bold mb-1 uppercase tracking-wider">Candidato</p>
+                <p id="player-name-display" class="text-sm text-blue-800 font-black mb-1 truncate max-w-[150px]">...</p>
+                <div class="h-px bg-gray-300 mb-1"></div>
+                <p class="text-[10px] text-gray-500 font-bold mb-1 uppercase tracking-wider">Nota Atual</p>
+                <p id="score-display" class="text-2xl font-black text-black pixel-font leading-none">0</p>
+            </div>
+            
+            <div id="feedback-box" class="hidden px-4 py-2 border-4 border-black shadow-[4px_4px_0px_rgba(0,0,0,1)] rounded-lg transition-all transform scale-0">
+                <p id="feedback-text" class="text-sm font-bold pixel-font"></p>
+            </div>
+        </div>
+    </div>
+
+    <div id="menu-screen">
+        <div class="game-card">
+            <h1 class="text-3xl font-black text-blue-600 mb-2 pixel-font tracking-tighter leading-snug" style="-webkit-text-stroke: 1.5px black; color: #3B82F6; text-shadow: 4px 4px 0 #000;">SUPER<br>ENEM BROS</h1>
+            <p class="text-xs text-gray-500 mb-6 font-bold bg-gray-100 inline-block px-2 py-1 rounded border border-gray-300">MISSÃO: NOTA 1000</p>
+            
+            <div class="mb-6 bg-yellow-50 p-4 rounded-lg border-2 border-yellow-400 shadow-inner">
+                <label for="player-name-input" class="block text-xs font-black text-yellow-800 mb-3 pixel-font">✍️ ESCREVA SEU NOME:</label>
+                <input type="text" id="player-name-input" class="retro-input w-full p-4 rounded text-lg font-bold placeholder-gray-400" placeholder="DIGITE AQUI..." maxlength="12" autocomplete="off">
+            </div>
+
+            <div class="space-y-3 mb-6 text-left text-xs bg-white p-3 rounded border-2 border-gray-100">
+                <div class="flex items-center gap-3">
+                    <span class="bg-green-100 text-green-700 px-2 py-1 border border-green-300 rounded font-bold min-w-[30px] text-center">+40</span>
+                    <span class="font-bold text-gray-700">Conceitos (C1-C5)</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="bg-red-100 text-red-700 px-2 py-1 border border-red-300 rounded font-bold min-w-[30px] text-center">-40</span>
+                    <span class="font-bold text-gray-700">Desvios (C1-C5)</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="text-xl">📺 🎮</span>
+                    <span class="font-bold text-gray-700">PULE as distrações!</span>
+                </div>
+            </div>
+
+            <button id="start-btn" class="interactive-btn w-full bg-blue-600 text-white text-lg font-black py-4 border-b-4 border-blue-900 shadow-lg rounded-lg hover:bg-blue-500 hover:translate-y-[-2px] active:translate-y-[0px] active:border-b-0 active:margin-top-[4px]">
+                INICIAR PROVA ▶
+            </button>
+        </div>
+    </div>
+
+    <div id="game-over-screen" class="hidden">
+        <div class="game-card">
+            <h1 id="end-title" class="text-2xl font-black mb-2 pixel-font">FIM DE JOGO</h1>
+            <p id="end-message" class="text-sm font-bold text-gray-500 mb-2">SUA NOTA FINAL</p>
+            
+            <div class="bg-gray-100 p-4 border-2 border-black mb-4 rounded relative overflow-hidden">
+                <div id="confetti-container" class="absolute inset-0 pointer-events-none"></div>
+                <p id="final-score" class="text-4xl font-black text-blue-700 pixel-font relative z-10 drop-shadow-sm">0</p>
+            </div>
+
+            <!-- Dica Motivacional -->
+            <div id="game-over-tip" class="hidden bg-blue-50 border-2 border-blue-300 rounded-lg p-3 mb-4 text-left">
+                <p class="text-xs font-bold text-blue-800 mb-1">💡 DICA DA PROFESSORA:</p>
+                <p class="text-xs text-gray-700 leading-relaxed"></p>
+            </div>
+
+            <h2 class="text-xs font-black text-gray-400 mb-2 pixel-font text-left border-b-2 border-gray-200 pb-1 uppercase">🏆 Quadro de Honra</h2>
+            <div class="bg-white border-2 border-black mb-6 min-h-[150px] rounded-lg overflow-hidden">
+                <div id="ranking-list" class="text-xs font-bold text-left">
+                    </div>
+            </div>
+
+            <button id="restart-btn" class="interactive-btn w-full bg-green-500 text-white text-lg font-black py-3 border-b-4 border-green-800 shadow-lg rounded hover:bg-green-400">
+                TENTAR NOVAMENTE ↺
+            </button>
+        </div>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        // --- Configuração ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        let width, height;
+        const INITIAL_SPEED = 3.5; // Velocidade constante do jogo (ajuste aqui para tornar mais fácil/difícil)
+        
+        function resize() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+            groundY = height - (height < 600 ? 80 : 120);
+            // Ajusta a posição da professora ao redimensionar
+            teacher.y = groundY - teacher.height;
+        }
+        window.addEventListener('resize', resize);
+        
+        // --- Variáveis Globais ---
+        let frames = 0;
+        let score = 0;
+        let speed = INITIAL_SPEED;
+        let gameRunning = false;
+        let groundY = 0;
+        let animationId;
+        let playerName = ""; // Armazena o nome do aluno
+        
+        const WIN_SCORE = 1000;
+
+        // --- MELHORIA: Conceitos baseados nas 5 Competências do ENEM ---
+        const wordConcepts = [
+            // Competência 1: Domínio da escrita formal
+            { text: "Norma Culta", type: 'good', competência: 'C1', points: 40 },
+            { text: "Clareza", type: 'good', competência: 'C1', points: 40 },
+            { text: "Gíria", type: 'bad', competência: 'C1', points: -40 },
+            { text: "Internetês", type: 'bad', competência: 'C1', points: -40 },
+            
+            // Competência 2: Compreender o tema e aplicar conceitos
+            { text: "Tese", type: 'good', competência: 'C2', points: 40 },
+            { text: "Repertório", type: 'good', competência: 'C2', points: 40 },
+            { text: "Citação", type: 'good', competência: 'C2', points: 40 },
+            { text: "Achismo", type: 'bad', competência: 'C2', points: -40 },
+            { text: "Fuga ao Tema", type: 'bad', competência: 'C2', points: -40 },
+
+            // Competência 3: Selecionar e organizar argumentos
+            { text: "Argumento", type: 'good', competência: 'C3', points: 40 },
+            { text: "Fatos", type: 'good', competência: 'C3', points: 40 },
+            { text: "Dados", type: 'good', competência: 'C3', points: 40 },
+            { text: "Senso Comum", type: 'bad', competência: 'C3', points: -40 },
+
+            // Competência 4: Coesão e Coerência
+            { text: "Coesão", type: 'good', competência: 'C4', points: 40 },
+            { text: "Conectivo", type: 'good', competência: 'C4', points: 40 },
+            { text: "Repetição", type: 'bad', competência: 'C4', points: -40 },
+
+            // Competência 5: Proposta de Intervenção
+            { text: "Agente", type: 'good', competência: 'C5', points: 40 },
+            { text: "Solução", type: 'good', competência: 'C5', points: 40 },
+            { text: "Proposta Vaga", type: 'bad', competência: 'C5', points: -40 }
+        ];
+
+        // --- Dicas da Professora (Nova Funcionalidade) ---
+        const teacherTips = [
+            "A Competência 1 exige domínio da norma culta. Evite gírias!",
+            "Use repertório sociocultural produtivo na C2. Citações valem ouro!",
+            "Organize seus argumentos na C3. Cada parágrafo um foco claro.",
+            "C4 é coesão! Use conectivos e evite repetições.",
+            "C5: Proposta deve ter Ação, Agente, Modo, Efeito e Detalhamento!",
+            "Foco total! Cada desvio de atenção custa pontos valiosos.",
+            "Pular é a chave! Colete conceitos para alcançar 1000.",
+            "ENEM é maratona, não sprint. Calma e concentração!"
+        ];
+        let lastTeacherSpawn = 0;
+        const TEACHER_SPAWN_INTERVAL = 600; // A cada 600 frames (aprox 10 segundos)
+
+        function spawnTeacher() {
+            if (frames - lastTeacherSpawn > TEACHER_SPAWN_INTERVAL && !teacher.isVisible) {
+                const SAFE_DISTANCE = 250; // Distância mínima de obstáculos e balões
+                let tooClose = false;
+                
+                // Verifica proximidade com obstáculos simples
+                obstacles.forEach(o => {
+                    const distance = Math.abs(width - o.x);
+                    if (distance < SAFE_DISTANCE) {
+                        tooClose = true;
+                    }
+                });
+                
+                // Verifica proximidade com obstáculos empilhados
+                stackedObstacles.forEach(s => {
+                    const distance = Math.abs(width - s.x);
+                    if (distance < SAFE_DISTANCE) {
+                        tooClose = true;
+                    }
+                });
+                
+                // Verifica proximidade com balões
+                wordBlocks.forEach(w => {
+                    const distance = Math.abs(width - w.x);
+                    if (distance < SAFE_DISTANCE) {
+                        tooClose = true;
+                    }
+                });
+                
+                // Se estiver seguro, spawna a professora
+                if (!tooClose) {
+                    const tip = teacherTips[Math.floor(Math.random() * teacherTips.length)];
+                    teacher.spawn(tip);
+                    lastTeacherSpawn = frames;
+                } else {
+                    lastTeacherSpawn = frames - 100; // Tenta novamente em breve
+                }
+            }
+        }
+
+        // --- Inicialização do Menu ---
+        window.onload = () => {
+            resize();
+
+            const input = document.getElementById('player-name-input');
+            input.focus(); // Foco automático ao carregar
+            
+            const lastPlayer = localStorage.getItem('enemRunnerLastPlayer');
+            if(lastPlayer) input.value = lastPlayer;
+
+            // Anexa os listeners de evento
+            document.getElementById('start-btn').addEventListener('click', startGame);
+            document.getElementById('restart-btn').addEventListener('click', restartGame);
+            document.addEventListener('keydown', handleInput);
+            document.addEventListener('touchstart', handleInput);
+            document.addEventListener('mousedown', handleInput); // Adiciona suporte para clique do mouse
+        };
+
+        // --- Sistema de Ranking (Já inclui o nome) ---
+        function saveScore(name, points) {
+            const storageKey = 'enemRunnerRanking';
+            let ranking = JSON.parse(localStorage.getItem(storageKey) || '[]');
+            
+            // Adiciona a nova pontuação
+            ranking.push({ name: name, score: points, date: new Date().toLocaleDateString() });
+            
+            // Ordena e limita a 5
+            ranking.sort((a, b) => b.score - a.score);
+            if (ranking.length > 5) ranking = ranking.slice(0, 5);
+            
+            localStorage.setItem(storageKey, JSON.stringify(ranking));
+            localStorage.setItem('enemRunnerLastPlayer', name); // Lembra o nome
+            return ranking;
+        }
+
+        function renderRanking(currentRanking) {
+            const list = document.getElementById('ranking-list');
+            list.innerHTML = '';
+
+            if(currentRanking.length === 0) {
+                list.innerHTML = '<div class="p-4 text-center text-gray-400 italic">Seja o primeiro a gabaritar!</div>';
+                return;
+            }
+
+            currentRanking.forEach((entry, index) => {
+                // Destaca a pontuação atual do jogador
+                const isCurrent = (entry.name === playerName && entry.score === score); 
+                let medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
+
+                list.innerHTML += `
+                    <div class="ranking-row flex justify-between items-center p-3 border-b border-gray-100 ${isCurrent ? 'bg-blue-100 border-blue-300' : ''}">
+                        <div class="flex items-center gap-2 overflow-hidden w-2/3">
+                            <span class="pixel-font w-6 text-right mr-1 text-[10px] rank-num">${medal}</span>
+                            <span class="uppercase truncate font-bold text-gray-800 text-xs">${entry.name}</span>
+                        </div>
+                        <span class="pixel-font text-blue-900 text-xs">${entry.score}</span>
+                    </div>
+                `;
+            });
+        }
+
+        // --- Áudio (Tone.js) ---
+        let synth;
+        let isMuted = false;
+
+        async function initAudio() {
+            if (!synth) {
+                await Tone.start();
+                synth = new Tone.PolySynth(Tone.Synth).toDestination();
+                synth.volume.value = -10;
+            }
+        }
+
+        function playSound(type) {
+            if(!synth || isMuted) return;
+            try {
+                switch(type) {
+                    case 'jump': synth.triggerAttackRelease("G4", "16n"); break;
+                    case 'collect': synth.triggerAttackRelease("C6", "32n"); break; 
+                    case 'bad': synth.triggerAttackRelease("A2", "8n"); break; 
+                    case 'die': 
+                        const nowDie = Tone.now();
+                        synth.triggerAttackRelease("A3", "8n", nowDie);
+                        synth.triggerAttackRelease("E3", "8n", nowDie + 0.1);
+                        synth.triggerAttackRelease("A2", "4n", nowDie + 0.2);
+                        break;
+                    case 'win': 
+                        const now = Tone.now();
+                        synth.triggerAttackRelease("C4", "8n", now);
+                        synth.triggerAttackRelease("E4", "8n", now + 0.15);
+                        synth.triggerAttackRelease("G4", "8n", now + 0.30);
+                        synth.triggerAttackRelease("C5", "4n", now + 0.45);
+                        break;
+                }
+            } catch(e) {}
+        }
+
+        // --- Entidades ---
+        const player = {
+            x: 50, y: 0, width: 44, height: 56, dy: 0,
+            jumpForce: 12, gravity: 0.5, grounded: false,
+            draw() {
+                ctx.fillStyle = 'rgba(0,0,0,0.15)';
+                if (!this.grounded) {
+                    ctx.beginPath();
+                    ctx.ellipse(this.x + this.width/2, groundY + 5, this.width/2 * (1 - Math.min(Math.abs(groundY - this.y)/200, 0.5)), 4, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                const pX = this.x;
+                const pY = this.y;
+                const isRunA = Math.floor(frames / 15) % 2 === 0;
+                
+                // Desenho do Estudante
+                ctx.fillStyle = '#1E3A8A'; // Calça
+                if (this.grounded) {
+                    if (isRunA) { ctx.fillRect(pX + 8, pY + 40, 10, 16); ctx.fillRect(pX + 26, pY + 40, 10, 16); }
+                    else { ctx.fillRect(pX + 4, pY + 38, 12, 14); ctx.fillRect(pX + 28, pY + 38, 12, 14); }
+                } else {
+                    ctx.fillRect(pX + 12, pY + 42, 10, 10); ctx.fillRect(pX + 22, pY + 38, 10, 12); 
+                }
+                ctx.fillStyle = '#2563EB'; ctx.fillRect(pX + 6, pY + 22, 32, 20); // Camisa
+                ctx.fillStyle = '#1D4ED8'; // Braços
+                if (isRunA || !this.grounded) { ctx.fillRect(pX + 30, pY + 22, 10, 16); ctx.fillRect(pX - 2, pY + 24, 10, 14); }
+                else { ctx.fillRect(pX + 32, pY + 24, 10, 14); ctx.fillRect(pX - 4, pY + 22, 10, 16); }
+                ctx.fillStyle = '#FFD1A4'; ctx.fillRect(pX + 6, pY, 32, 26); // Cabeça
+                ctx.fillStyle = '#DC2626'; ctx.fillRect(pX + 4, pY - 4, 36, 10); ctx.fillRect(pX + 20, pY - 4, 24, 4); // Boné
+                ctx.fillStyle = 'black'; ctx.fillRect(pX + 28, pY + 10, 4, 6); ctx.fillRect(pX + 30, pY + 18, 6, 2); // Rosto
+                ctx.fillStyle = '#92400E'; ctx.fillRect(pX - 6, pY + 24, 12, 18); // Mochila
+            },
+            update() {
+                if (input.jump && this.grounded) {
+                    this.dy = -this.jumpForce;
+                    this.grounded = false;
+                    playSound('jump');
+                }
+                this.dy += this.gravity;
+                this.y += this.dy;
+                if (this.y + this.height > groundY) {
+                    this.y = groundY - this.height;
+                    this.dy = 0;
+                    this.grounded = true;
+                }
+            },
+            reset() {
+                this.y = groundY - this.height;
+                this.dy = 0;
+                this.grounded = true;
+                this.x = 50;
+            }
+        };
+
+        // --- MELHORIA: Entidade Professora como NPC visível ---
+        const teacher = {
+            x: 0, y: 0, width: 40, height: 60,
+            isVisible: false,
+            tipText: "",
+            tipAlpha: 0,
+            tipMaxAlpha: 1,
+            draw() {
+                if (!this.isVisible) return;
+                const tX = this.x;
+                const tY = this.y;
+
+                // Desenho da Professora (Estilo similar ao jogador, mas com vestido/saia)
+                ctx.fillStyle = '#10B981'; // Vestido/Saia
+                ctx.fillRect(tX, tY + 30, 40, 30);
+                ctx.fillStyle = '#059669'; // Detalhe Vestido
+                ctx.fillRect(tX + 5, tY + 35, 30, 5);
+
+                ctx.fillStyle = '#FBBF24'; // Blusa
+                ctx.fillRect(tX + 5, tY + 15, 30, 15);
+                
+                ctx.fillStyle = '#FFD1A4'; // Cabeça
+                ctx.fillRect(tX + 8, tY, 24, 20); 
+                ctx.fillStyle = '#92400E'; // Cabelo
+                ctx.fillRect(tX + 4, tY - 4, 32, 8);
+                ctx.fillRect(tX + 28, tY + 4, 8, 12);
+                
+                ctx.fillStyle = 'black'; // Olhos
+                ctx.fillRect(tX + 12, tY + 6, 4, 4);
+                ctx.fillRect(tX + 24, tY + 6, 4, 4);
+                
+                ctx.fillStyle = '#1D4ED8'; // Braços
+                ctx.fillRect(tX - 5, tY + 18, 10, 12);
+                ctx.fillRect(tX + 35, tY + 18, 10, 12);
+
+                // Desenha o balão de dica acima da professora
+                if (this.tipText && this.tipAlpha > 0) {
+                    const tipX = tX - 80;
+                    const tipY = tY - 80;
+                    const tipWidth = 200;
+                    const tipHeight = 60;
+
+                    ctx.save();
+                    ctx.globalAlpha = this.tipAlpha;
+
+                    // Balão de fala
+                    ctx.fillStyle = '#FFF';
+                    ctx.strokeStyle = '#000';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.roundRect(tipX, tipY, tipWidth, tipHeight, 10);
+                    ctx.fill();
+                    ctx.stroke();
+
+                    // Pontinha do balão
+                    ctx.fillStyle = '#FFF';
+                    ctx.beginPath();
+                    ctx.moveTo(tX + 15, tipY + tipHeight);
+                    ctx.lineTo(tX + 20, tipY + tipHeight + 15);
+                    ctx.lineTo(tX + 25, tipY + tipHeight);
+                    ctx.fill();
+                    ctx.strokeStyle = '#000';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.moveTo(tX + 15, tipY + tipHeight);
+                    ctx.lineTo(tX + 20, tipY + tipHeight + 15);
+                    ctx.lineTo(tX + 25, tipY + tipHeight);
+                    ctx.stroke();
+
+                    // Texto da dica
+                    ctx.fillStyle = '#1E40AF';
+                    ctx.font = 'bold 10px Inter';
+                    ctx.textAlign = 'left';
+                    
+                    // Quebra o texto em múltiplas linhas
+                    const words = this.tipText.split(' ');
+                    let line = '';
+                    let lines = [];
+                    const maxWidth = tipWidth - 20;
+                    
+                    words.forEach(word => {
+                        const testLine = line + word + ' ';
+                        const metrics = ctx.measureText(testLine);
+                        if (metrics.width > maxWidth && line !== '') {
+                            lines.push(line);
+                            line = word + ' ';
+                        } else {
+                            line = testLine;
+                        }
+                    });
+                    lines.push(line);
+
+                    // Desenha as linhas
+                    lines.forEach((l, i) => {
+                        ctx.fillText(l.trim(), tipX + 10, tipY + 20 + (i * 14));
+                    });
+
+                    ctx.restore();
+                }
+            },
+            update() {
+                if (!this.isVisible) return;
+                
+                // Move a professora com o jogo
+                this.x -= speed;
+                
+                // Anima a opacidade da dica (fade in/out)
+                if (this.tipAlpha < this.tipMaxAlpha) {
+                    this.tipAlpha += 0.05;
+                }
+                
+                // Remove quando sair da tela
+                if (this.x + this.width < 0) {
+                    this.isVisible = false;
+                }
+            },
+            spawn(tipMessage) {
+                this.x = width;
+                this.y = groundY - this.height;
+                this.isVisible = true;
+                this.tipText = tipMessage;
+                this.tipAlpha = 0;
+            },
+            reset() {
+                this.isVisible = false;
+                this.tipText = "";
+                this.tipAlpha = 0;
+            }
+        };
+
+        // --- Obstáculos (Distrações) ---
+        class GroundObstacle {
+            constructor(isStacked = false) {
+                this.width = 40; 
+                this.height = 40;
+                this.x = width; 
+                this.y = groundY - this.height;
+                this.markedForDeletion = false;
+                const types = ['phone', 'tv', 'pc', 'game', 'headphone'];
+                this.obstacleType = types[Math.floor(Math.random() * types.length)];
+                this.isStacked = isStacked;
+            }
+            draw() {
+                const x = this.x; const y = this.y;
+                ctx.fillStyle = 'rgba(0,0,0,0.1)'; ctx.fillRect(x + 5, y + 35, 30, 5); // Sombra
+                if (this.obstacleType === 'phone') {
+                    ctx.fillStyle = '#1F2937'; ctx.beginPath(); ctx.roundRect(x + 10, y + 2, 20, 38, 3); ctx.fill();
+                    ctx.fillStyle = '#60A5FA'; ctx.fillRect(x + 12, y + 6, 16, 28);
+                    ctx.fillStyle = '#374151'; ctx.fillRect(x + 18, y + 36, 4, 2);
+                    ctx.fillStyle = '#FFF'; ctx.fillRect(x + 14, y + 10, 4, 4); ctx.fillRect(x + 22, y + 10, 4, 4);
+                } else if (this.obstacleType === 'tv') {
+                    ctx.fillStyle = '#4B5563'; ctx.fillRect(x, y + 5, 40, 30);
+                    ctx.fillStyle = '#D1D5DB'; ctx.fillRect(x + 3, y + 8, 28, 24);
+                    ctx.fillStyle = Math.random() > 0.5 ? '#9CA3AF' : '#E5E7EB'; ctx.fillRect(x + 5, y + 10, 24, 20);
+                    ctx.fillStyle = '#000'; ctx.fillRect(x + 34, y + 10, 4, 4); ctx.fillRect(x + 34, y + 16, 4, 4);
+                    ctx.strokeStyle = '#374151'; ctx.lineWidth = 2;
+                    ctx.beginPath(); ctx.moveTo(x + 10, y + 5); ctx.lineTo(x + 5, y - 5); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(x + 30, y + 5); ctx.lineTo(x + 35, y - 5); ctx.stroke();
+                } else if (this.obstacleType === 'pc') {
+                    ctx.fillStyle = '#E5E7EB'; ctx.fillRect(x + 2, y + 2, 36, 26);
+                    ctx.fillStyle = '#111827'; ctx.fillRect(x + 5, y + 5, 30, 20);
+                    ctx.fillStyle = '#10B981'; if (frames % 20 < 10) ctx.fillText(">_", x + 8, y + 20);
+                    ctx.fillStyle = '#9CA3AF'; ctx.fillRect(x + 15, y + 28, 10, 8); ctx.fillRect(x + 8, y + 36, 24, 4);
+                } else if (this.obstacleType === 'game') {
+                    ctx.fillStyle = '#1F2937'; ctx.beginPath(); ctx.roundRect(x, y + 15, 40, 22, 8); ctx.fill();
+                    ctx.fillStyle = '#EF4444'; ctx.beginPath(); ctx.arc(x + 32, y + 24, 3, 0, Math.PI*2); ctx.fill();
+                    ctx.fillStyle = '#3B82F6'; ctx.beginPath(); ctx.arc(x + 26, y + 28, 3, 0, Math.PI*2); ctx.fill();
+                    ctx.fillStyle = '#9CA3AF'; ctx.fillRect(x + 6, y + 22, 4, 10); ctx.fillRect(x + 3, y + 25, 10, 4);
+                } else if (this.obstacleType === 'headphone') {
+                    // Fone de ouvido (reduzido)
+                    ctx.fillStyle = '#1F2937'; 
+                    // Arco do fone (menor)
+                    ctx.beginPath();
+                    ctx.arc(x + 20, y + 12, 12, Math.PI, 0, false); // Raio reduzido de 15 para 12
+                    ctx.lineWidth = 3; // Linha mais fina (era 4)
+                    ctx.stroke();
+                    // Almofadas (menores)
+                    ctx.fillStyle = '#374151';
+                    ctx.beginPath(); ctx.arc(x + 10, y + 26, 5, 0, Math.PI*2); ctx.fill(); // Raio de 6 para 5
+                    ctx.beginPath(); ctx.arc(x + 30, y + 26, 5, 0, Math.PI*2); ctx.fill(); // Raio de 6 para 5
+                    // Detalhes internos (menores)
+                    ctx.fillStyle = '#60A5FA';
+                    ctx.beginPath(); ctx.arc(x + 10, y + 26, 2.5, 0, Math.PI*2); ctx.fill(); // Raio de 3 para 2.5
+                    ctx.beginPath(); ctx.arc(x + 30, y + 26, 2.5, 0, Math.PI*2); ctx.fill(); // Raio de 3 para 2.5
+                }
+            }
+            update() {
+                this.x -= speed;
+                if (this.x + this.width < 0) this.markedForDeletion = true;
+            }
+        }
+
+        // --- Obstáculo Empilhado (Novo) ---
+        class StackedObstacle {
+            constructor() {
+                this.obstacles = [
+                    new GroundObstacle(true),
+                    new GroundObstacle(true)
+                ];
+                this.obstacles[1].y = this.obstacles[0].y - this.obstacles[0].height - 5; // Empilha o segundo
+                this.x = width;
+                this.markedForDeletion = false;
+            }
+            draw() {
+                this.obstacles.forEach(o => o.draw());
+            }
+            update() {
+                this.obstacles.forEach(o => {
+                    o.x -= speed;
+                });
+                this.x = this.obstacles[0].x;
+                if (this.x + this.obstacles[0].width < 0) this.markedForDeletion = true;
+            }
+            checkCollision(player) {
+                return this.obstacles.some(o => checkCollision(player, o));
+            }
+        }
+
+        // --- MELHORIA: WordBlock com altura ajustada para garantir que seja sempre pulável ---
+        class WordBlock {
+            constructor() {
+                // Sorteia um conceito (bom ou ruim)
+                this.concept = wordConcepts[Math.floor(Math.random() * wordConcepts.length)];
+                
+                this.isBad = this.concept.type === 'bad';
+                this.text = this.concept.text;
+                
+                ctx.font = 'bold 14px Inter'; 
+                const metrics = ctx.measureText(this.text);
+                
+                // MELHORIA: Balões ruins são mais estreitos (menor comprimento)
+                if (this.isBad) {
+                    this.width = metrics.width + 16; // Mais estreito - reduzido de 30 para 16
+                    this.height = 34; // Altura mantida igual
+                } else {
+                    this.width = metrics.width + 30; 
+                    this.height = 34;
+                }
+                
+                this.x = width;
+                
+                // MELHORIA: Ambos os tipos têm alturas variadas aleatórias
+                // Balões BONS: Para COLETAR (podem estar baixos ou altos)
+                // Balões RUINS: Para PULAR POR CIMA (também variados, mas limitados pelo pulo)
+                if (this.isBad) {
+                    // Balões ruins: 40 a 100 pixels do chão (variado)
+                    // Topo máximo: 100 + 34 = 134px (jogador pula até 144px, margem de 10px)
+                    const minH = 40; 
+                    const maxH = 100;
+                    this.y = groundY - minH - Math.random() * (maxH - minH);
+                } else {
+                    // Balões bons: 40 a 120 pixels do chão (bem variados)
+                    // Podem estar baixos (fácil pegar) ou altos (precisa pular)
+                    const minH = 40; 
+                    const maxH = 120;
+                    this.y = groundY - minH - Math.random() * (maxH - minH);
+                }
+
+                this.markedForDeletion = false;
+                this.oscillationOffset = Math.random() * Math.PI * 2;
+            }
+            draw() {
+                const floatY = Math.sin(frames * 0.08 + this.oscillationOffset) * 4;
+                const finalY = this.y + floatY;
+
+                if (this.isBad) {
+                    ctx.fillStyle = '#FCA5A5'; ctx.strokeStyle = '#DC2626'; ctx.lineWidth = 2;
+                    ctx.beginPath(); ctx.roundRect(this.x, finalY, this.width, this.height, 20); ctx.fill(); ctx.stroke();
+                    ctx.fillStyle = '#DC2626';
+                    ctx.font = 'bold 14px Inter';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(this.text, this.x + this.width / 2, finalY + 22);
+                    ctx.textAlign = 'left';
+                } else {
+                    ctx.fillStyle = '#A7F3D0'; ctx.strokeStyle = '#059669'; ctx.lineWidth = 2;
+                    ctx.beginPath(); ctx.roundRect(this.x, finalY, this.width, this.height, 20); ctx.fill(); ctx.stroke();
+                    ctx.fillStyle = '#059669';
+                    ctx.font = 'bold 14px Inter';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(this.text, this.x + this.width / 2, finalY + 22);
+                    ctx.textAlign = 'left';
+                }
+            }
+            update() {
+                this.x -= speed;
+                if (this.x + this.width < 0) this.markedForDeletion = true;
+            }
+        }
+
+        // --- Gerenciamento de Entidades ---
+        let obstacles = [];
+        let stackedObstacles = [];
+        let wordBlocks = [];
+        let lastObstacleFrame = -100; // Começa negativo para spawnar mais cedo
+        let lastWordBlockFrame = -80; // Começa negativo para spawnar mais cedo
+        const OBSTACLE_SPAWN_RATE = 120; // Reduzido de 150 para aparecer mais rápido
+        const WORDBLOCK_SPAWN_RATE = 90; // Reduzido de 100 para aparecer mais rápido
+
+        function spawnObstacle() {
+            if (frames - lastObstacleFrame > OBSTACLE_SPAWN_RATE + Math.random() * 80) {
+                const SAFE_DISTANCE = 200; // Distância mínima segura entre obstáculo e balão ruim
+                let tooClose = false;
+                
+                // Verifica se há balões ruins próximos
+                wordBlocks.forEach(w => {
+                    if (w.isBad) {
+                        const distance = Math.abs(width - w.x); // width é onde o novo obstáculo vai aparecer
+                        if (distance < SAFE_DISTANCE) {
+                            tooClose = true;
+                        }
+                    }
+                });
+                
+                // Se estiver muito perto de um balão ruim, não spawna e tenta novamente mais tarde
+                if (tooClose) {
+                    lastObstacleFrame = frames - 30; // Tenta de novo em breve (30 frames)
+                    return;
+                }
+                
+                // 20% de chance de spawnar obstáculos empilhados
+                if (Math.random() < 0.2) {
+                    stackedObstacles.push(new StackedObstacle());
+                } else {
+                    obstacles.push(new GroundObstacle());
+                }
+                lastObstacleFrame = frames;
+            }
+        }
+
+        function spawnWordBlock() {
+            if (frames - lastWordBlockFrame > WORDBLOCK_SPAWN_RATE + Math.random() * 120) {
+                const newBlock = new WordBlock();
+                
+                // Se for balão ruim, verifica se há obstáculos próximos
+                if (newBlock.isBad) {
+                    const SAFE_DISTANCE = 200; // Distância mínima segura entre balão ruim e obstáculo
+                    let tooClose = false;
+                    
+                    // Verifica proximidade com obstáculos simples
+                    obstacles.forEach(o => {
+                        const distance = Math.abs(newBlock.x - o.x);
+                        if (distance < SAFE_DISTANCE) {
+                            tooClose = true;
+                        }
+                    });
+                    
+                    // Verifica proximidade com obstáculos empilhados
+                    stackedObstacles.forEach(s => {
+                        const distance = Math.abs(newBlock.x - s.x);
+                        if (distance < SAFE_DISTANCE) {
+                            tooClose = true;
+                        }
+                    });
+                    
+                    // Se estiver muito perto de um obstáculo, não spawna e tenta novamente mais tarde
+                    if (tooClose) {
+                        lastWordBlockFrame = frames - 30; // Tenta de novo em breve (30 frames)
+                        return;
+                    }
+                }
+                
+                wordBlocks.push(newBlock);
+                lastWordBlockFrame = frames;
+            }
+        }
+
+        function updateEntities() {
+            player.update();
+            teacher.update();
+            
+            obstacles.forEach(o => o.update());
+            stackedObstacles.forEach(s => s.update());
+            wordBlocks.forEach(w => w.update());
+
+            obstacles = obstacles.filter(o => !o.markedForDeletion);
+            stackedObstacles = stackedObstacles.filter(s => !s.markedForDeletion);
+            wordBlocks = wordBlocks.filter(w => !w.markedForDeletion);
+        }
+
+        function drawEntities() {
+            // Desenha o chão
+            ctx.fillStyle = '#10B981';
+            ctx.fillRect(0, groundY, width, height - groundY);
+            
+            // Desenha a professora (Nova Funcionalidade)
+            teacher.draw();
+
+            // Desenha as entidades
+            obstacles.forEach(o => o.draw());
+            stackedObstacles.forEach(s => s.draw());
+            wordBlocks.forEach(w => w.draw());
+            player.draw();
+        }
+
+        // --- Colisão ---
+        function checkCollision(rect1, rect2) {
+            return rect1.x < rect2.x + rect2.width &&
+                   rect1.x + rect1.width > rect2.x &&
+                   rect1.y < rect2.y + rect2.height &&
+                   rect1.y + rect1.height > rect2.y;
+        }
+
+        function handleCollisions() {
+            // Colisão com Obstáculos simples (Distrações)
+            obstacles.forEach(o => {
+                if (checkCollision(player, o)) {
+                    gameOver(false); // Fim de jogo por colisão
+                }
+            });
+
+            // Colisão com Obstáculos empilhados
+            stackedObstacles.forEach(s => {
+                if (s.checkCollision(player)) {
+                    gameOver(false); // Fim de jogo por colisão
+                }
+            });
+
+            // Colisão com WordBlocks (Conceitos)
+            wordBlocks.forEach(w => {
+                const floatY = Math.sin(frames * 0.08 + w.oscillationOffset) * 4;
+                const wordRect = { x: w.x, y: w.y + floatY, width: w.width, height: w.height };
+
+                if (checkCollision(player, wordRect)) {
+                    w.markedForDeletion = true;
+                    score += w.concept.points;
+                    updateScoreDisplay();
+                    
+                    if (w.isBad) {
+                        showFeedback(`-${Math.abs(w.concept.points)} ${w.concept.competência}`, 'red');
+                        playSound('bad');
+                        flashDamage();
+                    } else {
+                        showFeedback(`+${w.concept.points} ${w.concept.competência}`, 'green');
+                        playSound('collect');
+                    }
+                }
+            });
+        }
+
+        // --- Game Loop ---
+        function gameLoop() {
+            if (!gameRunning) return;
+
+            // Limpa o canvas
+            ctx.clearRect(0, 0, width, height);
+
+            // Mantém velocidade constante (sem aceleração)
+            speed = INITIAL_SPEED;
+
+            // Spawns
+            spawnObstacle();
+            spawnWordBlock();
+            spawnTeacher(); // Spawna a professora NPC
+            
+            // Atualiza e Desenha
+            updateEntities();
+            drawEntities();
+            handleCollisions();
+
+            // Verifica a vitória
+            if (score >= WIN_SCORE) {
+                gameOver(true);
+                return;
+            }
+
+            frames++;
+            animationId = requestAnimationFrame(gameLoop);
+        }
+
+        // --- Funções de Controle ---
+        function startGame() {
+            const input = document.getElementById('player-name-input');
+            const name = input.value.trim().toUpperCase();
+
+            if (name.length < 3) {
+                input.classList.add('input-error');
+                setTimeout(() => input.classList.remove('input-error'), 500);
+                return;
+            }
+
+            playerName = name;
+            document.getElementById('player-name-display').textContent = playerName;
+            
+            // Esconde menu
+            const menuScreen = document.getElementById('menu-screen');
+            menuScreen.classList.add('hidden');
+            menuScreen.style.display = 'none';
+            
+            // Mostra canvas
+            canvas.style.display = 'block';
+            
+            resetGame();
+            gameRunning = true;
+            initAudio();
+            gameLoop();
+        }
+
+        function resetGame() {
+            cancelAnimationFrame(animationId);
+            frames = 0;
+            score = 0;
+            speed = INITIAL_SPEED;
+            obstacles = [];
+            stackedObstacles = [];
+            wordBlocks = [];
+            lastObstacleFrame = -100; // Reinicia negativo para spawnar logo
+            lastWordBlockFrame = -80; // Reinicia negativo para spawnar logo
+            lastTeacherSpawn = 0; // Reseta spawn da professora
+            player.reset();
+            teacher.reset();
+            updateScoreDisplay();
+        }
+
+        function gameOver(win) {
+            gameRunning = false;
+            cancelAnimationFrame(animationId);
+            playSound(win ? 'win' : 'die');
+            
+            // Esconde elementos do jogo
+            canvas.style.display = 'none';
+
+            // Preenche informações da tela de game over
+            const finalScoreEl = document.getElementById('final-score');
+            const endTitleEl = document.getElementById('end-title');
+            const endMessageEl = document.getElementById('end-message');
+            const gameOverTipEl = document.getElementById('game-over-tip');
+            const confettiContainer = document.getElementById('confetti-container');
+
+            finalScoreEl.textContent = score;
+            
+            // Gera dica motivacional baseada na pontuação
+            let motivationalTip = "";
+            if (win) {
+                motivationalTip = "🎓 Perfeito! Você dominou as 5 competências do ENEM! Continue estudando para manter esse nível de excelência.";
+            } else if (score >= 800) {
+                motivationalTip = "📚 Ótimo desempenho! Você está quase lá. Revise suas competências mais fracas e foque na proposta de intervenção (C5).";
+            } else if (score >= 600) {
+                motivationalTip = "✍️ Bom trabalho! Para melhorar: fortaleça seu repertório sociocultural (C2) e pratique mais coesão textual (C4).";
+            } else if (score >= 400) {
+                motivationalTip = "📖 Continue praticando! Revise os conectivos para melhorar a coesão (C4) e lembre-se: argumentos sólidos fazem diferença (C3).";
+            } else if (score >= 200) {
+                motivationalTip = "💪 Não desista! Comece pela base: domine a norma culta (C1) e estruture bem sua tese (C2). A prática leva à perfeição!";
+            } else if (score >= 0) {
+                motivationalTip = "🌟 Todo início é difícil! Foque primeiro em evitar gírias (C1) e construir uma tese clara (C2). Você consegue!";
+            } else {
+                motivationalTip = "🎯 Ops! Evite os desvios conceituais! Eles reduzem sua nota. Foque em coletar conceitos corretos e pular as distrações.";
+            }
+            
+            // Exibe a dica
+            gameOverTipEl.querySelector('p:last-child').textContent = motivationalTip;
+            gameOverTipEl.classList.remove('hidden');
+            
+            if (win) {
+                endTitleEl.textContent = "GABARITOU!";
+                endTitleEl.classList.remove('text-red-600');
+                endTitleEl.classList.add('text-green-600');
+                endMessageEl.textContent = `Parabéns, ${playerName}! Você alcançou a nota 1000!`;
+                // Efeito Confetti (simples)
+                confettiContainer.innerHTML = Array(50).fill(0).map(() => 
+                    `<div style="position: absolute; width: 10px; height: 10px; background-color: ${['#EF4444', '#FBBF24', '#10B981', '#3B82F6'][Math.floor(Math.random()*4)]}; top: ${Math.random()*100}%; left: ${Math.random()*100}%; transform: rotate(${Math.random()*360}deg);"></div>`
+                ).join('');
+                setTimeout(() => confettiContainer.innerHTML = '', 3000);
+            } else {
+                endTitleEl.textContent = "FIM DE JOGO";
+                endTitleEl.classList.remove('text-green-600');
+                endTitleEl.classList.add('text-red-600');
+                endMessageEl.textContent = `Sua nota final, ${playerName}:`;
+                confettiContainer.innerHTML = '';
+            }
+
+            // Salva score e renderiza ranking
+            const ranking = saveScore(playerName, score);
+            renderRanking(ranking);
+
+            // Mostra a tela de game over com um pequeno delay
+            setTimeout(() => {
+                const gameOverScreen = document.getElementById('game-over-screen');
+                gameOverScreen.classList.remove('hidden');
+                gameOverScreen.style.display = 'flex'; // Força a exibição
+            }, 100);
+        }
+
+        function restartGame() {
+            // Esconde game over
+            const gameOverScreen = document.getElementById('game-over-screen');
+            gameOverScreen.classList.add('hidden');
+            gameOverScreen.style.display = 'none';
+            
+            // Mostra menu
+            const menuScreen = document.getElementById('menu-screen');
+            menuScreen.classList.remove('hidden');
+            menuScreen.style.display = 'flex';
+            
+            // Esconde canvas
+            canvas.style.display = 'none';
+            
+            // Foca no input
+            document.getElementById('player-name-input').focus();
+        }
+
+        // --- UI Feedback ---
+        function updateScoreDisplay() {
+            document.getElementById('score-display').textContent = score;
+        }
+
+        function showFeedback(text, color) {
+            const box = document.getElementById('feedback-box');
+            const textEl = document.getElementById('feedback-text');
+            
+            textEl.textContent = text;
+            textEl.className = `text-sm font-bold pixel-font text-${color}-600`;
+            
+            box.classList.remove('hidden');
+            box.classList.remove('scale-0');
+            box.classList.add('scale-100');
+
+            setTimeout(() => {
+                box.classList.remove('scale-100');
+                box.classList.add('scale-0');
+                setTimeout(() => box.classList.add('hidden'), 300);
+            }, 1000);
+        }
+
+        function flashDamage() {
+            const overlay = document.getElementById('damage-overlay');
+            overlay.style.opacity = 1;
+            setTimeout(() => overlay.style.opacity = 0, 100);
+        }
+
+        // --- Input Handling ---
+        const input = { jump: false };
+
+        function handleInput(e) {
+            if (!gameRunning) return;
+
+            // Tecla de espaço, clique do mouse ou toque na tela
+            if (e.type === 'keydown' && e.code === 'Space' || e.type === 'touchstart' || e.type === 'mousedown') {
+                e.preventDefault();
+                if (player.grounded) {
+                    input.jump = true; // Pulo instantâneo, sem delay
+                }
+            }
+        }
+
+        document.addEventListener('keyup', (e) => {
+            if (e.code === 'Space') {
+                input.jump = false;
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            input.jump = false;
+        });
+
+        document.addEventListener('touchend', () => {
+            input.jump = false;
+        });
+
+    </script>
+</body>
+</html>
