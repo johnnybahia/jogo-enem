@@ -601,7 +601,7 @@
                     this.speechTimer--;
 
                     // Fade in (primeiros 10 frames)
-                    if (this.speechTimer > 230) {
+                    if (this.speechTimer > 590) {
                         this.speechAlpha = Math.min(1, this.speechAlpha + 0.1);
                     }
                     // Fade out (últimos 30 frames)
@@ -616,7 +616,7 @@
             },
             showSpeech(text) {
                 this.speechBubble = text;
-                this.speechTimer = 240; // Mostra por 4 segundos (240 frames)
+                this.speechTimer = 600; // Mostra por 10 segundos (600 frames)
                 this.speechAlpha = 0;
             },
             reset() {
