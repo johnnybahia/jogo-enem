@@ -224,11 +224,6 @@
         let animationId;
         let playerName = ""; // Armazena o nome do aluno
 
-        // Controle de Frame Rate (garante 60 FPS em todos os dispositivos)
-        let lastFrameTime = 0;
-        const targetFPS = 60;
-        const frameDelay = 1000 / targetFPS; // ~16.67ms entre frames
-        
         const WIN_SCORE = 1000;
 
         // --- Carregamento de Imagens ---
@@ -979,17 +974,8 @@
         }
 
         // --- Game Loop ---
-        function gameLoop(currentTime) {
+        function gameLoop() {
             if (!gameRunning) return;
-
-            animationId = requestAnimationFrame(gameLoop);
-
-            // Controle de Frame Rate: só atualiza quando passou tempo suficiente
-            const deltaTime = currentTime - lastFrameTime;
-            if (deltaTime < frameDelay) {
-                return; // Pula este frame se ainda não passou tempo suficiente
-            }
-            lastFrameTime = currentTime - (deltaTime % frameDelay);
 
             // Limpa o canvas
             ctx.clearRect(0, 0, width, height);
@@ -1014,6 +1000,7 @@
             }
 
             frames++;
+            animationId = requestAnimationFrame(gameLoop);
         }
 
         // --- Funções de Controle ---
@@ -1049,7 +1036,6 @@
             frames = 0;
             score = 0;
             speed = INITIAL_SPEED;
-            lastFrameTime = 0; // Reset frame rate control
             obstacles = [];
             stackedObstacles = [];
             wordBlocks = [];
