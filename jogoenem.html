@@ -276,7 +276,7 @@
             if (frames - lastTeacherSpawn > TEACHER_SPAWN_INTERVAL && !teacher.isVisible) {
                 const SAFE_DISTANCE = 250; // Distância mínima de obstáculos e balões
                 let tooClose = false;
-                
+
                 // Verifica proximidade com obstáculos simples
                 obstacles.forEach(o => {
                     const distance = Math.abs(width - o.x);
@@ -284,7 +284,7 @@
                         tooClose = true;
                     }
                 });
-                
+
                 // Verifica proximidade com obstáculos empilhados
                 stackedObstacles.forEach(s => {
                     const distance = Math.abs(width - s.x);
@@ -292,7 +292,7 @@
                         tooClose = true;
                     }
                 });
-                
+
                 // Verifica proximidade com balões
                 wordBlocks.forEach(w => {
                     const distance = Math.abs(width - w.x);
@@ -300,11 +300,25 @@
                         tooClose = true;
                     }
                 });
-                
-                // Se estiver seguro, spawna a professora
+
+                // Se estiver seguro, spawna a professora ENTRE dois obstáculos fixos
                 if (!tooClose) {
                     const tip = teacherTips[Math.floor(Math.random() * teacherTips.length)];
+
+                    // Spawna obstáculo antes da professora (200px de distância)
+                    const obstacleLeft = new GroundObstacle();
+                    obstacleLeft.x = width + 200;
+                    obstacles.push(obstacleLeft);
+
+                    // Spawna a professora no meio (com espaço seguro)
                     teacher.spawn(tip);
+                    teacher.x = width + 400; // Professora no meio
+
+                    // Spawna obstáculo depois da professora (200px de distância)
+                    const obstacleRight = new GroundObstacle();
+                    obstacleRight.x = width + 600;
+                    obstacles.push(obstacleRight);
+
                     lastTeacherSpawn = frames;
                 } else {
                     lastTeacherSpawn = frames - 100; // Tenta novamente em breve
@@ -465,7 +479,7 @@
 
         // --- MELHORIA: Entidade Professora como NPC visível ---
         const teacher = {
-            x: 0, y: 0, width: 40, height: 60,
+            x: 0, y: 0, width: 50, height: 60,
             isVisible: false,
             tipText: "",
             tipAlpha: 0,
@@ -475,28 +489,64 @@
                 const tX = this.x;
                 const tY = this.y;
 
-                // Desenho da Professora (Estilo similar ao jogador, mas com vestido/saia)
-                ctx.fillStyle = '#10B981'; // Vestido/Saia
-                ctx.fillRect(tX, tY + 30, 40, 30);
+                // Desenho da Professora - MELHORADO
+                // Vestido/Saia (verde elegante)
+                ctx.fillStyle = '#10B981';
+                ctx.fillRect(tX + 5, tY + 30, 40, 30);
                 ctx.fillStyle = '#059669'; // Detalhe Vestido
-                ctx.fillRect(tX + 5, tY + 35, 30, 5);
+                ctx.fillRect(tX + 8, tY + 35, 34, 3);
+                ctx.fillRect(tX + 8, tY + 42, 34, 3);
 
-                ctx.fillStyle = '#FBBF24'; // Blusa
-                ctx.fillRect(tX + 5, tY + 15, 30, 15);
-                
-                ctx.fillStyle = '#FFD1A4'; // Cabeça
-                ctx.fillRect(tX + 8, tY, 24, 20); 
-                ctx.fillStyle = '#92400E'; // Cabelo
-                ctx.fillRect(tX + 4, tY - 4, 32, 8);
-                ctx.fillRect(tX + 28, tY + 4, 8, 12);
-                
-                ctx.fillStyle = 'black'; // Olhos
-                ctx.fillRect(tX + 12, tY + 6, 4, 4);
-                ctx.fillRect(tX + 24, tY + 6, 4, 4);
-                
-                ctx.fillStyle = '#1D4ED8'; // Braços
-                ctx.fillRect(tX - 5, tY + 18, 10, 12);
-                ctx.fillRect(tX + 35, tY + 18, 10, 12);
+                // Blusa (amarelo dourado)
+                ctx.fillStyle = '#FBBF24';
+                ctx.fillRect(tX + 10, tY + 18, 30, 14);
+
+                // Braços
+                ctx.fillStyle = '#F59E0B';
+                ctx.fillRect(tX + 2, tY + 20, 8, 16);
+                ctx.fillRect(tX + 40, tY + 20, 8, 16);
+
+                // Mãos (pele)
+                ctx.fillStyle = '#FFD1A4';
+                ctx.fillRect(tX, tY + 36, 6, 6);
+                ctx.fillRect(tX + 44, tY + 36, 6, 6);
+
+                // Livro na mão esquerda
+                ctx.fillStyle = '#DC2626';
+                ctx.fillRect(tX - 4, tY + 32, 10, 12);
+                ctx.fillStyle = '#FFF';
+                ctx.fillRect(tX - 3, tY + 34, 8, 2);
+                ctx.fillRect(tX - 3, tY + 38, 8, 2);
+
+                // Cabeça (pele)
+                ctx.fillStyle = '#FFD1A4';
+                ctx.fillRect(tX + 12, tY + 2, 26, 22);
+
+                // Cabelo (marrom arrumado com coque)
+                ctx.fillStyle = '#92400E';
+                ctx.fillRect(tX + 8, tY - 2, 34, 8); // Topo
+                ctx.fillRect(tX + 8, tY + 6, 8, 12); // Lado esquerdo
+                ctx.fillRect(tX + 34, tY + 6, 8, 12); // Lado direito
+                ctx.fillRect(tX + 36, tY + 2, 10, 8); // Coque
+
+                // Óculos
+                ctx.strokeStyle = '#374151';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(tX + 14, tY + 9, 8, 6); // Lente esquerda
+                ctx.strokeRect(tX + 28, tY + 9, 8, 6); // Lente direita
+                ctx.beginPath();
+                ctx.moveTo(tX + 22, tY + 12);
+                ctx.lineTo(tX + 28, tY + 12);
+                ctx.stroke(); // Ponte dos óculos
+
+                // Olhos atrás dos óculos
+                ctx.fillStyle = 'black';
+                ctx.fillRect(tX + 16, tY + 11, 3, 3);
+                ctx.fillRect(tX + 30, tY + 11, 3, 3);
+
+                // Sorriso
+                ctx.fillStyle = '#DC2626';
+                ctx.fillRect(tX + 20, tY + 19, 10, 2);
 
                 // Desenha o balão de dica acima da professora
                 if (this.tipText && this.tipAlpha > 0) {
@@ -633,7 +683,7 @@
                     ctx.fillStyle = '#9CA3AF'; ctx.fillRect(x + 6, y + 22, 4, 10); ctx.fillRect(x + 3, y + 25, 10, 4);
                 } else if (this.obstacleType === 'headphone') {
                     // Fone de ouvido (reduzido)
-                    ctx.fillStyle = '#1F2937'; 
+                    ctx.fillStyle = '#1F2937';
                     // Arco do fone (menor)
                     ctx.beginPath();
                     ctx.arc(x + 20, y + 12, 12, Math.PI, 0, false); // Raio reduzido de 15 para 12
@@ -647,6 +697,16 @@
                     ctx.fillStyle = '#60A5FA';
                     ctx.beginPath(); ctx.arc(x + 10, y + 26, 2.5, 0, Math.PI*2); ctx.fill(); // Raio de 3 para 2.5
                     ctx.beginPath(); ctx.arc(x + 30, y + 26, 2.5, 0, Math.PI*2); ctx.fill(); // Raio de 3 para 2.5
+
+                    // Símbolos de música (♪)
+                    ctx.fillStyle = '#10B981';
+                    ctx.font = 'bold 12px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('♪', x + 20, y + 8);
+                    ctx.font = 'bold 8px Arial';
+                    ctx.fillText('♪', x + 15, y + 4);
+                    ctx.fillText('♪', x + 25, y + 6);
+                    ctx.textAlign = 'left';
                 }
             }
             update() {
