@@ -127,6 +127,17 @@
                 <div class="h-px bg-gray-300 mb-1"></div>
                 <p class="text-[10px] text-gray-500 font-bold mb-1 uppercase tracking-wider">Nota Atual</p>
                 <p id="score-display" class="text-2xl font-black text-black pixel-font leading-none">0</p>
+                <div class="h-px bg-gray-300 my-2"></div>
+                <div class="flex justify-between items-center">
+                    <div>
+                        <p class="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Vidas</p>
+                        <p id="lives-display" class="text-xl font-black text-red-600 pixel-font">❤️ 0</p>
+                    </div>
+                    <div>
+                        <p class="text-[10px] text-gray-500 font-bold uppercase tracking-wider text-right">Tempo</p>
+                        <p id="timer-display" class="text-xl font-black text-blue-600 pixel-font">2:00</p>
+                    </div>
+                </div>
             </div>
             
             <div id="feedback-box" class="hidden px-4 py-2 border-4 border-black shadow-[4px_4px_0px_rgba(0,0,0,1)] rounded-lg transition-all transform scale-0">
@@ -223,8 +234,12 @@
         let groundY = 0;
         let animationId;
         let playerName = ""; // Armazena o nome do aluno
+        let lives = 0; // Sistema de vidas
+        let gameTimer = 120; // 2 minutos em segundos
+        let lastSecond = 0; // Controle do timer
 
         const WIN_SCORE = 1000;
+        const GAME_TIME_LIMIT = 120; // 2 minutos
 
         // --- Carregamento de Imagens ---
         const teacherImage = new Image();
@@ -276,7 +291,8 @@
             "ENEM é maratona, não sprint. Calma e concentração!"
         ];
         let lastTeacherSpawn = 0;
-        const TEACHER_SPAWN_INTERVAL = 600; // A cada 600 frames (aprox 10 segundos)
+        const TEACHER_SPAWN_INTERVAL = 300; // A cada 300 frames (aprox 5 segundos) - aparece com mais frequência
+        let usedTips = []; // Controla dicas já usadas para não repetir
 
         function spawnTeacher() {
             if (frames - lastTeacherSpawn > TEACHER_SPAWN_INTERVAL && !teacher.isVisible) {
@@ -309,7 +325,17 @@
 
                 // Se estiver seguro, spawna a professora ENTRE dois obstáculos fixos
                 if (!tooClose) {
-                    const tip = teacherTips[Math.floor(Math.random() * teacherTips.length)];
+                    // Seleciona uma dica que não foi usada recentemente
+                    let availableTips = teacherTips.filter(tip => !usedTips.includes(tip));
+                    if (availableTips.length === 0) {
+                        usedTips = []; // Reset se todas foram usadas
+                        availableTips = teacherTips;
+                    }
+                    const tip = availableTips[Math.floor(Math.random() * availableTips.length)];
+                    usedTips.push(tip);
+                    if (usedTips.length > teacherTips.length / 2) {
+                        usedTips.shift(); // Remove a mais antiga
+                    }
 
                     // Spawna obstáculo antes da professora (200px de distância)
                     const obstacleLeft = new GroundObstacle();
@@ -487,6 +513,7 @@
         const teacher = {
             x: 0, y: 0, width: 60, height: 80,
             isVisible: false,
+            collected: false, // Flag para saber se já foi coletada
             tipText: "",
             tipAlpha: 0,
             tipMaxAlpha: 1,
@@ -592,11 +619,13 @@
                 this.x = width;
                 this.y = groundY - this.height;
                 this.isVisible = true;
+                this.collected = false; // Reset da flag ao spawnar
                 this.tipText = tipMessage;
                 this.tipAlpha = 0;
             },
             reset() {
                 this.isVisible = false;
+                this.collected = false;
                 this.tipText = "";
                 this.tipAlpha = 0;
             }
@@ -937,17 +966,47 @@
         }
 
         function handleCollisions() {
+            // Colisão com a Professora (ganha vida)
+            if (teacher.isVisible && !teacher.collected) {
+                const teacherRect = { x: teacher.x, y: teacher.y, width: teacher.width, height: teacher.height };
+                if (checkCollision(player, teacherRect)) {
+                    teacher.collected = true;
+                    lives++;
+                    updateLivesDisplay();
+                    showFeedback('+1 VIDA!', 'green');
+                    playSound('collect');
+                }
+            }
+
             // Colisão com Obstáculos simples (Distrações)
             obstacles.forEach(o => {
                 if (checkCollision(player, o)) {
-                    gameOver(false); // Fim de jogo por colisão
+                    if (lives > 0) {
+                        lives--;
+                        updateLivesDisplay();
+                        showFeedback('-1 VIDA!', 'red');
+                        playSound('bad');
+                        flashDamage();
+                        o.markedForDeletion = true; // Remove obstáculo após colidir
+                    } else {
+                        gameOver(false); // Fim de jogo sem vidas
+                    }
                 }
             });
 
             // Colisão com Obstáculos empilhados
             stackedObstacles.forEach(s => {
                 if (s.checkCollision(player)) {
-                    gameOver(false); // Fim de jogo por colisão
+                    if (lives > 0) {
+                        lives--;
+                        updateLivesDisplay();
+                        showFeedback('-1 VIDA!', 'red');
+                        playSound('bad');
+                        flashDamage();
+                        s.markedForDeletion = true; // Remove obstáculo após colidir
+                    } else {
+                        gameOver(false); // Fim de jogo sem vidas
+                    }
                 }
             });
 
@@ -960,7 +1019,7 @@
                     w.markedForDeletion = true;
                     score += w.concept.points;
                     updateScoreDisplay();
-                    
+
                     if (w.isBad) {
                         showFeedback(`-${Math.abs(w.concept.points)} ${w.concept.competência}`, 'red');
                         playSound('bad');
@@ -983,6 +1042,18 @@
             // Mantém velocidade constante (sem aceleração)
             speed = INITIAL_SPEED;
 
+            // Atualiza o timer (a cada 60 frames = 1 segundo)
+            if (frames % 60 === 0 && frames > 0) {
+                gameTimer--;
+                updateTimerDisplay();
+
+                // Verifica se o tempo acabou
+                if (gameTimer <= 0) {
+                    gameOver(false); // Tempo esgotado = derrota
+                    return;
+                }
+            }
+
             // Spawns
             spawnObstacle();
             spawnWordBlock();
@@ -993,7 +1064,7 @@
             drawEntities();
             handleCollisions();
 
-            // Verifica a vitória
+            // Verifica a vitória (precisa atingir 1000 pontos ANTES do tempo acabar)
             if (score >= WIN_SCORE) {
                 gameOver(true);
                 return;
@@ -1035,16 +1106,21 @@
             cancelAnimationFrame(animationId);
             frames = 0;
             score = 0;
+            lives = 0; // Reset vidas
+            gameTimer = GAME_TIME_LIMIT; // Reset timer para 2 minutos
             speed = INITIAL_SPEED;
             obstacles = [];
             stackedObstacles = [];
             wordBlocks = [];
+            usedTips = []; // Reset dicas usadas
             lastObstacleFrame = -100; // Reinicia negativo para spawnar logo
             lastWordBlockFrame = -80; // Reinicia negativo para spawnar logo
             lastTeacherSpawn = 0; // Reseta spawn da professora
             player.reset();
             teacher.reset();
             updateScoreDisplay();
+            updateLivesDisplay();
+            updateTimerDisplay();
         }
 
         function gameOver(win) {
@@ -1137,6 +1213,28 @@
         // --- UI Feedback ---
         function updateScoreDisplay() {
             document.getElementById('score-display').textContent = score;
+        }
+
+        function updateLivesDisplay() {
+            const heartsDisplay = lives > 0 ? '❤️ '.repeat(lives) : '0';
+            document.getElementById('lives-display').textContent = heartsDisplay;
+        }
+
+        function updateTimerDisplay() {
+            const minutes = Math.floor(gameTimer / 60);
+            const seconds = gameTimer % 60;
+            const timeString = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            document.getElementById('timer-display').textContent = timeString;
+
+            // Alerta visual quando tempo está acabando (últimos 30 segundos)
+            const timerEl = document.getElementById('timer-display');
+            if (gameTimer <= 30 && gameTimer > 0) {
+                timerEl.classList.add('text-red-600');
+                timerEl.classList.remove('text-blue-600');
+            } else {
+                timerEl.classList.add('text-blue-600');
+                timerEl.classList.remove('text-red-600');
+            }
         }
 
         function showFeedback(text, color) {
