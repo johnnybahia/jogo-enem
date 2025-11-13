@@ -544,7 +544,7 @@
                     const catWidth = 50;
                     const catHeight = 50;
                     const catX = tX + this.width + 5; // 5px de espaço entre professora e gato
-                    const catY = tY; // Mesma linha que a professora
+                    const catY = tY + this.height - catHeight; // Alinha na mesma linha inferior (base)
                     ctx.drawImage(catImage, catX, catY, catWidth, catHeight);
                 }
 
