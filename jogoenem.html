@@ -239,7 +239,7 @@
             { text: "Repertório", type: 'good', competência: 'C2', points: 40 },
             { text: "Citação", type: 'good', competência: 'C2', points: 40 },
             { text: "Achismo", type: 'bad', competência: 'C2', points: -40 },
-            { text: "Fuga Tema", type: 'bad', competência: 'C2', points: -40 },
+            { text: "Fuga ao Tema", type: 'bad', competência: 'C2', points: -40 },
 
             // Competência 3: Selecionar e organizar argumentos
             { text: "Argumento", type: 'good', competência: 'C3', points: 40 },
@@ -255,7 +255,7 @@
             // Competência 5: Proposta de Intervenção
             { text: "Agente", type: 'good', competência: 'C5', points: 40 },
             { text: "Solução", type: 'good', competência: 'C5', points: 40 },
-            { text: "P. Vaga", type: 'bad', competência: 'C5', points: -40 }
+            { text: "Proposta Vaga", type: 'bad', competência: 'C5', points: -40 }
         ];
 
         // --- Dicas da Professora (Nova Funcionalidade) ---
@@ -750,19 +750,41 @@
                 this.isBad = this.concept.type === 'bad';
                 this.text = this.concept.text;
 
+                // MELHORIA: Largura máxima fixa e quebra de linha automática
                 ctx.font = 'bold 14px Inter';
-                const metrics = ctx.measureText(this.text);
+                const maxWidth = 90; // Largura máxima do balão (mais estreito)
+                const padding = 20;
 
-                // MELHORIA: Tamanho padrão para todos os balões
-                this.width = metrics.width + 30;
-                this.height = 34;
+                // Quebra o texto em palavras
+                const words = this.text.split(' ');
+                this.lines = [];
+                let currentLine = '';
+
+                words.forEach(word => {
+                    const testLine = currentLine ? currentLine + ' ' + word : word;
+                    const metrics = ctx.measureText(testLine);
+
+                    if (metrics.width > maxWidth && currentLine !== '') {
+                        this.lines.push(currentLine);
+                        currentLine = word;
+                    } else {
+                        currentLine = testLine;
+                    }
+                });
+                if (currentLine) {
+                    this.lines.push(currentLine);
+                }
+
+                // MELHORIA: Tamanho padrão com altura dinâmica baseada no número de linhas
+                this.width = maxWidth + padding;
+                this.height = 20 + (this.lines.length * 16); // 16px por linha + padding
 
                 this.x = width;
 
                 // MELHORIA: Apenas 2 alturas possíveis para todos os balões
                 // Altura 1 (ALTA): 120 pixels do chão - acima do personagem (pode passar por baixo ou pular para pegar)
-                // Altura 2 (BAIXA): 45 pixels do chão - na linha do personagem (pode pular por cima ou pegar passando)
-                const alturas = [120, 45]; // Duas alturas fixas
+                // Altura 2 (BAIXA): 30 pixels do chão - na linha do personagem (pode pular por cima ou pegar passando)
+                const alturas = [120, 30]; // Duas alturas fixas (baixou de 45 para 30)
                 const alturaEscolhida = alturas[Math.floor(Math.random() * alturas.length)];
                 this.y = groundY - alturaEscolhida;
 
@@ -779,7 +801,13 @@
                     ctx.fillStyle = '#DC2626';
                     ctx.font = 'bold 14px Inter';
                     ctx.textAlign = 'center';
-                    ctx.fillText(this.text, this.x + this.width / 2, finalY + 22);
+
+                    // Desenha cada linha de texto
+                    this.lines.forEach((line, index) => {
+                        const lineY = finalY + 18 + (index * 16);
+                        ctx.fillText(line, this.x + this.width / 2, lineY);
+                    });
+
                     ctx.textAlign = 'left';
                 } else {
                     ctx.fillStyle = '#A7F3D0'; ctx.strokeStyle = '#059669'; ctx.lineWidth = 2;
@@ -787,7 +815,13 @@
                     ctx.fillStyle = '#059669';
                     ctx.font = 'bold 14px Inter';
                     ctx.textAlign = 'center';
-                    ctx.fillText(this.text, this.x + this.width / 2, finalY + 22);
+
+                    // Desenha cada linha de texto
+                    this.lines.forEach((line, index) => {
+                        const lineY = finalY + 18 + (index * 16);
+                        ctx.fillText(line, this.x + this.width / 2, lineY);
+                    });
+
                     ctx.textAlign = 'left';
                 }
             }
