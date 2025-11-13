@@ -247,6 +247,11 @@
         let teacherImageLoaded = false;
         teacherImage.onload = () => { teacherImageLoaded = true; };
 
+        const catImage = new Image();
+        catImage.src = 'https://i.ibb.co/F1zSWt4/IMG-20231018-181315-821-removebg-preview.png';
+        let catImageLoaded = false;
+        catImage.onload = () => { catImageLoaded = true; };
+
         // --- MELHORIA: Conceitos baseados nas 5 Competências do ENEM ---
         const wordConcepts = [
             // Competência 1: Domínio da escrita formal
@@ -511,7 +516,7 @@
 
         // --- MELHORIA: Entidade Professora como NPC visível ---
         const teacher = {
-            x: 0, y: 0, width: 60, height: 80,
+            x: 0, y: 0, width: 115, height: 80, // Largura aumentada para incluir gato (60 + 50 + 5)
             isVisible: false,
             collected: false, // Flag para saber se já foi coletada
             tipText: "",
@@ -534,9 +539,18 @@
                     ctx.fillText('Prof.', tX + 10, tY + 40);
                 }
 
+                // Desenha o gato ao lado da professora
+                if (catImageLoaded) {
+                    const catWidth = 50;
+                    const catHeight = 50;
+                    const catX = tX + this.width + 5; // 5px de espaço entre professora e gato
+                    const catY = tY + this.height - catHeight; // Alinha na base
+                    ctx.drawImage(catImage, catX, catY, catWidth, catHeight);
+                }
+
                 // Desenha o balão de dica acima da professora
                 if (this.tipText && this.tipAlpha > 0) {
-                    const tipX = tX - 70;
+                    const tipX = tX - 40; // Ajustado para centralizar melhor sobre professora + gato
                     const tipY = tY - 80;
                     const tipWidth = 200;
                     const tipHeight = 60;
@@ -556,16 +570,16 @@
                     // Pontinha do balão
                     ctx.fillStyle = '#FFF';
                     ctx.beginPath();
-                    ctx.moveTo(tX + 20, tipY + tipHeight);
-                    ctx.lineTo(tX + 30, tipY + tipHeight + 15);
-                    ctx.lineTo(tX + 35, tipY + tipHeight);
+                    ctx.moveTo(tX + 40, tipY + tipHeight);
+                    ctx.lineTo(tX + 50, tipY + tipHeight + 15);
+                    ctx.lineTo(tX + 60, tipY + tipHeight);
                     ctx.fill();
                     ctx.strokeStyle = '#000';
                     ctx.lineWidth = 3;
                     ctx.beginPath();
-                    ctx.moveTo(tX + 20, tipY + tipHeight);
-                    ctx.lineTo(tX + 30, tipY + tipHeight + 15);
-                    ctx.lineTo(tX + 35, tipY + tipHeight);
+                    ctx.moveTo(tX + 40, tipY + tipHeight);
+                    ctx.lineTo(tX + 50, tipY + tipHeight + 15);
+                    ctx.lineTo(tX + 60, tipY + tipHeight);
                     ctx.stroke();
 
                     // Texto da dica
