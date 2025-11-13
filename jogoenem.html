@@ -233,13 +233,13 @@
             { text: "Clareza", type: 'good', competência: 'C1', points: 40 },
             { text: "Gíria", type: 'bad', competência: 'C1', points: -40 },
             { text: "Internetês", type: 'bad', competência: 'C1', points: -40 },
-            
+
             // Competência 2: Compreender o tema e aplicar conceitos
             { text: "Tese", type: 'good', competência: 'C2', points: 40 },
             { text: "Repertório", type: 'good', competência: 'C2', points: 40 },
             { text: "Citação", type: 'good', competência: 'C2', points: 40 },
             { text: "Achismo", type: 'bad', competência: 'C2', points: -40 },
-            { text: "Fuga ao Tema", type: 'bad', competência: 'C2', points: -40 },
+            { text: "Fuga Tema", type: 'bad', competência: 'C2', points: -40 },
 
             // Competência 3: Selecionar e organizar argumentos
             { text: "Argumento", type: 'good', competência: 'C3', points: 40 },
@@ -255,7 +255,7 @@
             // Competência 5: Proposta de Intervenção
             { text: "Agente", type: 'good', competência: 'C5', points: 40 },
             { text: "Solução", type: 'good', competência: 'C5', points: 40 },
-            { text: "Proposta Vaga", type: 'bad', competência: 'C5', points: -40 }
+            { text: "P. Vaga", type: 'bad', competência: 'C5', points: -40 }
         ];
 
         // --- Dicas da Professora (Nova Funcionalidade) ---
@@ -686,40 +686,25 @@
             constructor() {
                 // Sorteia um conceito (bom ou ruim)
                 this.concept = wordConcepts[Math.floor(Math.random() * wordConcepts.length)];
-                
+
                 this.isBad = this.concept.type === 'bad';
                 this.text = this.concept.text;
-                
-                ctx.font = 'bold 14px Inter'; 
+
+                ctx.font = 'bold 14px Inter';
                 const metrics = ctx.measureText(this.text);
-                
-                // MELHORIA: Balões ruins são mais estreitos (menor comprimento)
-                if (this.isBad) {
-                    this.width = metrics.width + 16; // Mais estreito - reduzido de 30 para 16
-                    this.height = 34; // Altura mantida igual
-                } else {
-                    this.width = metrics.width + 30; 
-                    this.height = 34;
-                }
-                
+
+                // MELHORIA: Tamanho padrão para todos os balões
+                this.width = metrics.width + 30;
+                this.height = 34;
+
                 this.x = width;
-                
-                // MELHORIA: Ambos os tipos têm alturas variadas aleatórias
-                // Balões BONS: Para COLETAR (podem estar baixos ou altos)
-                // Balões RUINS: Para PULAR POR CIMA (também variados, mas limitados pelo pulo)
-                if (this.isBad) {
-                    // Balões ruins: 40 a 100 pixels do chão (variado)
-                    // Topo máximo: 100 + 34 = 134px (jogador pula até 144px, margem de 10px)
-                    const minH = 40; 
-                    const maxH = 100;
-                    this.y = groundY - minH - Math.random() * (maxH - minH);
-                } else {
-                    // Balões bons: 40 a 120 pixels do chão (bem variados)
-                    // Podem estar baixos (fácil pegar) ou altos (precisa pular)
-                    const minH = 40; 
-                    const maxH = 120;
-                    this.y = groundY - minH - Math.random() * (maxH - minH);
-                }
+
+                // MELHORIA: Apenas 2 alturas possíveis para todos os balões
+                // Altura 1 (ALTA): 120 pixels do chão - acima do personagem (pode passar por baixo ou pular para pegar)
+                // Altura 2 (BAIXA): 45 pixels do chão - na linha do personagem (pode pular por cima ou pegar passando)
+                const alturas = [120, 45]; // Duas alturas fixas
+                const alturaEscolhida = alturas[Math.floor(Math.random() * alturas.length)];
+                this.y = groundY - alturaEscolhida;
 
                 this.markedForDeletion = false;
                 this.oscillationOffset = Math.random() * Math.PI * 2;
