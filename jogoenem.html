@@ -432,7 +432,7 @@
         // --- Entidades ---
         const player = {
             x: 50, y: 0, width: 44, height: 56, dy: 0,
-            jumpForce: 14, gravity: 0.6, grounded: false,
+            jumpForce: 15.5, gravity: 0.6, grounded: false,
             draw() {
                 ctx.fillStyle = 'rgba(0,0,0,0.15)';
                 if (!this.grounded) {
@@ -711,8 +711,8 @@
 
                 // MELHORIA: Largura máxima fixa e quebra de linha automática
                 ctx.font = 'bold 12px Inter'; // Fonte menor para caber melhor
-                const maxWidth = 70; // Largura máxima do balão (reduzido para facilitar pulo)
-                const padding = 16;
+                const maxWidth = 60; // Largura máxima do balão (reduzido ainda mais)
+                const padding = 14;
 
                 // Quebra o texto em palavras
                 const words = this.text.split(' ');
