@@ -840,12 +840,20 @@
         function spawnWordBlock() {
             if (frames - lastWordBlockFrame > WORDBLOCK_SPAWN_RATE + Math.random() * 120) {
                 const newBlock = new WordBlock();
-                
+
+                const SAFE_DISTANCE = 200; // Distância mínima segura
+                let tooClose = false;
+
+                // IMPORTANTE: Verifica se há professora visível próxima - NÃO spawna balões perto dela
+                if (teacher.isVisible) {
+                    const teacherDistance = Math.abs(newBlock.x - teacher.x);
+                    if (teacherDistance < 400) { // Distância maior para garantir área limpa
+                        tooClose = true;
+                    }
+                }
+
                 // Se for balão ruim, verifica se há obstáculos próximos
                 if (newBlock.isBad) {
-                    const SAFE_DISTANCE = 200; // Distância mínima segura entre balão ruim e obstáculo
-                    let tooClose = false;
-                    
                     // Verifica proximidade com obstáculos simples
                     obstacles.forEach(o => {
                         const distance = Math.abs(newBlock.x - o.x);
@@ -853,7 +861,7 @@
                             tooClose = true;
                         }
                     });
-                    
+
                     // Verifica proximidade com obstáculos empilhados
                     stackedObstacles.forEach(s => {
                         const distance = Math.abs(newBlock.x - s.x);
@@ -861,14 +869,14 @@
                             tooClose = true;
                         }
                     });
-                    
-                    // Se estiver muito perto de um obstáculo, não spawna e tenta novamente mais tarde
-                    if (tooClose) {
-                        lastWordBlockFrame = frames - 30; // Tenta de novo em breve (30 frames)
-                        return;
-                    }
                 }
-                
+
+                // Se estiver muito perto, não spawna e tenta novamente mais tarde
+                if (tooClose) {
+                    lastWordBlockFrame = frames - 30; // Tenta de novo em breve (30 frames)
+                    return;
+                }
+
                 wordBlocks.push(newBlock);
                 lastWordBlockFrame = frames;
             }
