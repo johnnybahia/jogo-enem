@@ -500,10 +500,45 @@
                     ctx.save();
                     ctx.globalAlpha = this.speechAlpha;
 
-                    const bubbleX = pX - 20;
-                    const bubbleY = pY - 60;
-                    const bubbleWidth = 130;
-                    const bubbleHeight = 45;
+                    ctx.font = 'bold 11px Inter';
+
+                    // Quebra o texto em linhas se necessário
+                    const maxWidth = 100; // Largura máxima para quebra de linha
+                    const words = this.speechBubble.split(' ');
+                    const lines = [];
+                    let currentLine = '';
+                    let maxLineWidth = 0;
+
+                    // Se for apenas um emoji/símbolo curto, não quebra
+                    if (this.speechBubble.length <= 2) {
+                        lines.push(this.speechBubble);
+                        maxLineWidth = ctx.measureText(this.speechBubble).width;
+                    } else {
+                        words.forEach(word => {
+                            const testLine = currentLine ? currentLine + ' ' + word : word;
+                            const metrics = ctx.measureText(testLine);
+
+                            if (metrics.width > maxWidth && currentLine !== '') {
+                                lines.push(currentLine);
+                                maxLineWidth = Math.max(maxLineWidth, ctx.measureText(currentLine).width);
+                                currentLine = word;
+                            } else {
+                                currentLine = testLine;
+                            }
+                        });
+                        if (currentLine) {
+                            lines.push(currentLine);
+                            maxLineWidth = Math.max(maxLineWidth, ctx.measureText(currentLine).width);
+                        }
+                    }
+
+                    // Calcula dimensões do balão baseado no conteúdo
+                    const padding = 16;
+                    const bubbleWidth = maxLineWidth + padding;
+                    const lineHeight = 14;
+                    const bubbleHeight = (lines.length * lineHeight) + padding;
+                    const bubbleX = pX + (this.width / 2) - (bubbleWidth / 2);
+                    const bubbleY = pY - bubbleHeight - 15;
 
                     // Balão de fala
                     ctx.fillStyle = '#FFF';
@@ -529,11 +564,13 @@
                     ctx.lineTo(pX + 25, bubbleY + bubbleHeight);
                     ctx.stroke();
 
-                    // Texto do balão
+                    // Desenha o texto (pode ser múltiplas linhas)
                     ctx.fillStyle = '#000';
-                    ctx.font = 'bold 11px Inter';
                     ctx.textAlign = 'center';
-                    ctx.fillText(this.speechBubble, bubbleX + bubbleWidth / 2, bubbleY + 25);
+                    lines.forEach((line, index) => {
+                        const lineY = bubbleY + (padding / 2) + 10 + (index * lineHeight);
+                        ctx.fillText(line, bubbleX + bubbleWidth / 2, lineY);
+                    });
                     ctx.textAlign = 'left';
 
                     ctx.restore();
